@@ -1891,3 +1891,125 @@ ul { list-style: none; }
   .admin-item__emoji { width: 40px; height: 40px; font-size: 22px; }
   .admin-item__actions { grid-column: 1 / -1; justify-content: flex-end; }
 }
+/* =========================================================
+   AUTH PAGE (login.html) — layout 2 columnas splash + panel
+   ========================================================= */
+.auth-page {
+  min-height: 100vh;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(91, 92, 255, 0.18), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 100%, rgba(236, 72, 153, 0.12), transparent 60%);
+  overflow-x: hidden;
+}
+.auth-page__wrap {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+}
+.auth-page__left {
+  padding: 48px 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+  color: var(--text);
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.auth-page__left::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=pixel-art%20gaming%20neon%20store%20background%20dark%20aesthetic%20mario%20sonic%20coins%20purple%20blue&image_size=landscape_16_9') center/cover no-repeat;
+  opacity: 0.08;
+  z-index: 0;
+  pointer-events: none;
+}
+.auth-page__left > * { position: relative; z-index: 1; }
+.logo--lg .logo__img {
+  height: 64px !important;
+  max-width: 260px;
+  width: auto !important;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+}
+.auth-page__title {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3.4vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+.auth-page__title .banner__title-accent { position: relative; display: inline-block; }
+.auth-page__sub {
+  font-size: 15px;
+  color: var(--text-muted);
+  max-width: 480px;
+  line-height: 1.6;
+  margin: 0;
+}
+.auth-page__bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-page__bullets li {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-soft);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  max-width: 440px;
+}
+.auth-page__bullets li .material-icons { color: var(--accent); font-size: 18px; }
+.auth-page__back {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.auth-page__back a {
+  color: var(--text-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color .18s ease;
+}
+.auth-page__back a:hover { color: var(--accent); }
+.auth-page__back a .material-icons { font-size: 16px; }
+
+.auth-page__right {
+  padding: 48px 40px;
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 960px) {
+  .auth-page__wrap {
+    grid-template-columns: 1fr;
+  }
+  .auth-page__left {
+    padding: 40px 32px 24px;
+    min-height: 320px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .auth-page__right {
+    padding: 32px 24px 48px;
+  }
+}
+@media (max-width: 560px) {
+  .auth-page__left { padding: 30px 22px 20px; }
+  .auth-page__right { padding: 26px 18px 40px; }
+  .logo--lg .logo__img { height: 52px !important; }
+}

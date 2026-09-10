@@ -1,9 +1,9 @@
 /* =========================================================
-   GLITCH SHOP — Interactive Logic v2
-   + Supabase Auth (correo+password)
+   GLITCH SHOP — Interactive Logic v3
+   + Supabase Auth (correo+password) por pestaña separada (login.html)
    + Carrito persistente: Supabase (user logged) | localStorage (guest)
    + Checkout WhatsApp (5216442514818)
-   + Super Admin check: glitchshopoficial@gmail.com + DB (raw_app_meta_data.role)
+   + Super Admin check: SOLO DB (raw_app_meta_data.role='super_admin')
    ========================================================= */
 
 /* -----------------------------------------------------------
@@ -26,8 +26,16 @@ const OWNER_WHATSAPP_NAME = (window.VITE_OWNER_WHATSAPP_NAME
   || localStorage.getItem('VITE_OWNER_WHATSAPP_NAME')
   || 'Glitch Shop Oficial');
 
-/* Super admin — BOTH check: (1) correo exacto + (2) DB meta.role = 'super_admin' */
-const SUPER_ADMIN_EMAILS = ['glitchshopoficial@gmail.com'];
+/* --------------------------
+   DETECTAR PÁGINA ACTUAL
+   (para comportamientos distintos entre login.html / admin.html / index.html / catalogo.html)
+   -------------------------- */
+const PAGE = (() => {
+  const f = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  if (f === 'login.html') return 'login';
+  if (f === 'admin.html') return 'admin';
+  return 'store';   /* index.html, catalogo.html */
+})();
 
 /* Instancia Supabase (se inicializa más abajo) */
 let supabase = null;
@@ -161,9 +169,12 @@ function initialsOf(name, email) {
    ----------------------------------------------------------- */
 function isSuperAdmin(user) {
   if (!user) return false;
-  /* 1) Lista hardcodeada (correo dueño) */
-  if (user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) return true;
-  /* 2) DB meta.role */
+  /* 
+     ⚠️  VERIFICACIÓN ÚNICA POR BASE DE DATOS:
+     El usuario ES super_admin SOLAMENTE si en la tabla auth.users 
+     el campo raw_app_meta_data->>'role' = 'super_admin'.
+     No hay correos hardcodeados. Promueve usuarios con el SQL entregado.
+  */
   try {
     if (user.app_metadata && user.app_metadata.role === 'super_admin') return true;
     if (user.raw_app_meta_data && user.raw_app_meta_data.role === 'super_admin') return true;
@@ -215,22 +226,75 @@ function applyUser(userRecord) {
 
 function renderAuthUI() {
   const popover = $('#authPopover');
-  const loggedOut = $('#authLoggedOut');
   const loggedIn = $('#authLoggedIn');
   const openAdminBtn = $('#openAdminBtn');
   const badgeAdmin = $('#badgeAdmin');
   const authIcon = $('#authIcon');
+  const authBtnLogin = $('#authBtnLogin');   /* <a href="login.html" target=_blank>  (sesión NO iniciada) */
+  const authBtn = $('#authBtn');             /* <button> + popover (sesión SÍ iniciada) */
 
-  if (!popover) return;
+  /* =============== LOGIN PAGE =============== */
+  if (PAGE === 'login') {
+    /* Si ya hay sesión activa en login.html: redirigir a la tienda o cerrar ventana */
+    if (state.user) {
+      showToast('Bienvenido de vuelta 🎮 — Redirigiendo…', 'success');
+      setTimeout(() => {
+        try { window.opener && window.close(); } catch(e) {}
+        if (!window.closed) window.location.href = 'index.html';
+      }, 900);
+    }
+    return;
+  }
 
+  /* =============== ADMIN PAGE =============== */
+  if (PAGE === 'admin') {
+    const notAllowed = $('#adminNotAllowed');
+    const container = $('#adminContainer');
+    const subtitle = $('#adminSubtitle');
+    const btnAdd = $('#adminAddBtn');
+    const btnRefresh = $('#adminRefreshBtn');
+
+    if (!state.user || !state.user.isAdmin) {
+      /* Bloquear acceso */
+      if (notAllowed) notAllowed.hidden = false;
+      if (container) container.hidden = true;
+      if (btnAdd) btnAdd.disabled = true;
+      if (btnRefresh) btnRefresh.disabled = true;
+      if (subtitle) subtitle.textContent = state.user ? 'Tu cuenta no tiene privilegios de Super Administrador.' : 'Inicia sesión con tu cuenta de administrador.';
+    } else {
+      if (notAllowed) notAllowed.hidden = true;
+      if (container) container.hidden = false;
+      if (btnAdd) btnAdd.disabled = false;
+      if (btnRefresh) btnRefresh.disabled = false;
+      if (subtitle) subtitle.innerHTML = `¡Hola <b>${state.user.name || state.user.email}</b>! Gestiona el catálogo, inventario y ofertas.`;
+      renderAdminList();
+    }
+    /* También render popover si existe */
+    if (loggedIn && state.user) {
+      const avatar = $('#userAvatar');
+      if (avatar) avatar.textContent = initialsOf(state.user.name, state.user.email);
+      const uName = $('#userName');
+      if (uName) uName.textContent = state.user.name || 'Usuario';
+      const uEmail = $('#userEmail');
+      if (uEmail) uEmail.textContent = state.user.email || '';
+      if (badgeAdmin) badgeAdmin.hidden = !state.user.isAdmin;
+    }
+    return;
+  }
+
+  /* =============== STORE PAGE (index / catalogo) =============== */
   if (!state.user) {
-    if (loggedOut) loggedOut.hidden = false;
-    if (loggedIn) loggedIn.hidden = true;
+    /* USUARIO INVITADO: mostrar link a login.html (pestaña nueva), ocultar botón popover */
+    if (authBtnLogin) authBtnLogin.hidden = false;
+    if (authBtn) authBtn.hidden = true;
     if (authIcon) authIcon.textContent = 'person_outline';
+    if (popover) popover.hidden = true;
   } else {
-    if (loggedOut) loggedOut.hidden = true;
-    if (loggedIn) loggedIn.hidden = false;
+    /* USUARIO LOGEADO: ocultar link, mostrar botón popover */
+    if (authBtnLogin) authBtnLogin.hidden = true;
+    if (authBtn) authBtn.hidden = false;
     if (authIcon) authIcon.textContent = 'person';
+    if (loggedIn) loggedIn.hidden = false;
     const avatar = $('#userAvatar');
     if (avatar) avatar.textContent = initialsOf(state.user.name, state.user.email);
     const uName = $('#userName');
@@ -308,7 +372,15 @@ async function handleAuthSubmit(e) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       showToast('Bienvenido de vuelta 🎮', 'success');
-      toggleAuthModal(false);
+      /* Si estamos en login.html: cerrar pestaña (si fue abierta por script) o redirigir a tienda */
+      if (PAGE === 'login') {
+        setTimeout(() => {
+          try { if (window.opener) { window.close(); } } catch(e) {}
+          if (!window.closed) window.location.href = 'index.html';
+        }, 600);
+      } else {
+        toggleAuthModal(false);
+      }
     } else {
       /* Crear cuenta (signup) — se envía correo de confirmación automático si está encendido */
       const nameInput = $('#authName');
@@ -344,10 +416,18 @@ async function handleSignOut() {
   state.user = null;
   state.cart = JSON.parse(localStorage.getItem('gs_cart_guest') || '[]');
   renderAuthUI();
-  renderCart();
-  if ($('#featuredGrid')) renderFeatured();
-  if ($('#productsGrid')) renderProducts();
+
+  if (PAGE !== 'login') {
+    renderCart();
+    if ($('#featuredGrid')) renderFeatured();
+    if ($('#productsGrid')) renderProducts();
+  }
   showToast('Sesión cerrada correctamente.', 'warn');
+
+  /* Si estamos en admin page sin user: después de cerrar sesión redirigir a index */
+  if (PAGE === 'admin') {
+    setTimeout(() => window.location.href = 'index.html', 700);
+  }
 }
 
 /* -----------------------------------------------------------
@@ -944,6 +1024,21 @@ function mapDBProduct(row) {
    11. UI BINDINGS (auth, admin, cart, checkout, tabs, search submit)
    ----------------------------------------------------------- */
 function bindAuthUi() {
+  /* =============== LOGIN PAGE: tabs, submit auth. Sin popover ni modales. =============== */
+  if (PAGE === 'login') {
+    /* Inicializar tabs por default */
+    switchAuthTab(state.authTab);
+
+    $$('.auth-tab').forEach(t => t.addEventListener('click', () => switchAuthTab(t.dataset.tab)));
+
+    const authForm = $('#authForm');
+    if (authForm) authForm.addEventListener('submit', handleAuthSubmit);
+
+    /* Cerrar con ESC solo opcional, no hay modal */
+    return;
+  }
+
+  /* =============== ADMIN PAGE: popover perfil, cerrar sesión, botones toolbar admin. =============== */
   const authBtn = $('#authBtn');
   const popover = $('#authPopover');
   if (authBtn) authBtn.addEventListener('click', e => {
@@ -954,40 +1049,36 @@ function bindAuthUi() {
     if (popover && !popover.contains(e.target) && !authBtn.contains(e.target)) popover.hidden = true;
   });
 
-  const openModalBtn = $('#openAuthModalBtn');
-  if (openModalBtn) openModalBtn.addEventListener('click', () => { toggleAuthPopover(false); toggleAuthModal(true); });
-
-  /* Cerrar modal */
-  $$('[data-auth-close]').forEach(el => el.addEventListener('click', () => toggleAuthModal(false)));
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      toggleAuthModal(false);
-      toggleAdminModal(false);
-    }
-  });
-
-  /* Tabs del modal */
-  $$('.auth-tab').forEach(t => t.addEventListener('click', () => switchAuthTab(t.dataset.tab)));
-
-  /* Submit auth */
-  const authForm = $('#authForm');
-  if (authForm) authForm.addEventListener('submit', handleAuthSubmit);
-
   /* SignOut */
   const signOutBtn = $('#signOutBtn');
   if (signOutBtn) signOutBtn.addEventListener('click', handleSignOut);
 
-  /* Admin */
-  const adminBtn = $('#openAdminBtn');
-  if (adminBtn) adminBtn.addEventListener('click', () => { toggleAuthPopover(false); toggleAdminModal(true); });
-  $$('[data-admin-close]').forEach(el => el.addEventListener('click', () => toggleAdminModal(false)));
+  /* Admin toolbar (SOLO admin.html tiene estos botones fuera de modal) */
   const adminRefresh = $('#adminRefreshBtn');
   if (adminRefresh) adminRefresh.addEventListener('click', renderAdminList);
   const adminAdd = $('#adminAddBtn');
   if (adminAdd) adminAdd.addEventListener('click', () => showToast('Añadir producto: próximo release. Usa Supabase SQL Editor por ahora ⚙️', 'warn'));
+
+  if (PAGE === 'admin') return; /* Pagina admin no necesita más bindeos */
+
+  /* =============== STORE PAGE (index/catalogo): popover user + link admin =============== */
+  /* adminBtn es ahora un <a href="admin.html" target="_blank"> asi que no necesita JS extra */
+  const adminBtn = $('#openAdminBtn');
+  if (adminBtn) adminBtn.addEventListener('click', () => toggleAuthPopover(false));
+
+  /* Esc (solo cierra popover cart ya que no hay modales auth/admin en store) */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      toggleAuthPopover(false);
+      if (popover) popover.hidden = true;
+    }
+  });
 }
 
 function bindUi() {
+  /* Login page: no requiere hamburger, cart, checkout, etc. */
+  if (PAGE === 'login') return;
+
   const hamburger = $('#hamburger');
   const nav = $('#nav');
   if (hamburger && nav) {
@@ -1008,8 +1099,8 @@ function bindUi() {
   if (checkoutBtn) checkoutBtn.addEventListener('click', () => {
     if (state.cart.length === 0) { showToast('Tu carrito está vacío.', 'warn'); return; }
     if (!state.user) {
-      showToast('Inicia sesión para guardar tu pedido.', 'warn');
-      toggleAuthModal(true);
+      showToast('Inicia sesión para guardar tu pedido — abriendo pestaña nueva…', 'warn');
+      window.open('login.html', '_blank', 'noopener');
       return;
     }
     const total = state.cart.reduce((a, c) => a + c.price * c.qty, 0);
@@ -1031,17 +1122,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindAuthUi();
   bindUi();
 
-  /* 2) Render inicial UI + carrito guest */
+  /* 2) Render inicial UI auth (SIEMPRE, en todas las páginas) */
   renderAuthUI();
-  renderCart();
 
-  if ($('#featuredGrid')) renderFeatured();
-  if ($('#productsGrid')) {
-    renderProducts();
-    bindFilters();
+  /* 3) Render carrito, productos y filtros SOLO en páginas store (index/catalogo).
+        Login page y admin page no los necesitan. */
+  if (PAGE === 'store') {
+    renderCart();
+    if ($('#featuredGrid')) renderFeatured();
+    if ($('#productsGrid')) {
+      renderProducts();
+      bindFilters();
+    }
+  } else if (PAGE === 'admin') {
+    /* Admin page necesita renderCart? No estrictamente, pero si lo queremos para el header no hace falta.
+       Pasamos. El renderAuthUI() ya se encargó de mostrar admin o bloqueado. */
   }
 
-  /* 3) Restaurar sesión + Supabase onAuthStateChange */
+  /* 4) Restaurar sesión + Supabase onAuthStateChange (SIEMPRE) */
   if (supabase) {
     await refreshSession();
 

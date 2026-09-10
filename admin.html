@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Administrador — Glitch Shop</title>
+  <meta name="description" content="Panel de administración Glitch Shop. Gestiona productos, categorías, inventario y pedidos." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Round" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="header__top">
+      <div class="container header__top-inner">
+        <a href="index.html" class="logo" aria-label="Glitch Shop Inicio">
+          <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="logo__img" />
+        </a>
+        <div class="header__actions">
+          <a href="index.html" class="btn btn--ghost" target="_self" style="text-decoration:none;">
+            <span class="material-icons">storefront</span> Ver tienda
+          </a>
+          <div class="auth-wrap" id="authWrap">
+            <button class="icon-btn" id="authBtn" aria-label="Mi cuenta">
+              <span class="material-icons-outlined" id="authIcon">person_outline</span>
+            </button>
+            <div class="auth-popover" id="authPopover" hidden>
+              <div id="authLoggedIn">
+                <div class="auth-popover__user">
+                  <div class="auth-popover__avatar" id="userAvatar">U</div>
+                  <div>
+                    <div class="auth-popover__name" id="userName">Usuario</div>
+                    <div class="auth-popover__email" id="userEmail">correo@ejemplo.com</div>
+                    <span class="badge-admin" id="badgeAdmin">
+                      <span class="material-icons" style="font-size:12px;">verified_user</span> Super Admin
+                    </span>
+                  </div>
+                </div>
+                <hr style="margin:12px 0;border-color:var(--border);" />
+                <button class="btn btn--ghost w-full" id="signOutBtn">
+                  <span class="material-icons">logout</span> Cerrar sesión
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="catalog" style="padding-top:32px;">
+      <div class="container">
+        <div class="catalog__header">
+          <div>
+            <h2 class="section-title">
+              <span class="material-icons" style="vertical-align:-4px;color:#f59e0b;">tune</span>
+              Panel Administrador
+            </h2>
+            <p class="section-subtitle" id="adminSubtitle">Verificando credenciales de Super Usuario…</p>
+          </div>
+          <div class="admin-modal__toolbar" style="gap:10px;">
+            <button class="btn btn--primary" id="adminAddBtn" disabled>
+              <span class="material-icons">add</span> Añadir producto
+            </button>
+            <button class="btn btn--ghost" id="adminRefreshBtn" disabled>
+              <span class="material-icons">refresh</span> Recargar
+            </button>
+          </div>
+        </div>
+
+        <div id="adminNotAllowed" hidden style="padding:80px 0;text-align:center;">
+          <div style="font-size:84px;opacity:.3;margin-bottom:16px;">🔒</div>
+          <h2 style="font-family:var(--font-display);color:var(--text);">Acceso restringido</h2>
+          <p class="section-subtitle" style="max-width:520px;margin:8px auto 24px;">
+            Esta área es solo para Super Administradores. Si eres el dueño, ejecuta el script SQL de promoción en el SQL Editor de Supabase y luego inicia sesión con tu cuenta.
+          </p>
+          <a href="login.html" target="_self" class="btn btn--primary" style="text-decoration:none;">
+            <span class="material-icons">login</span> Iniciar sesión como administrador
+          </a>
+        </div>
+
+        <div id="adminContainer" hidden>
+          <div class="admin-list" id="adminList" aria-live="polite">
+            <div class="admin-empty">
+              <span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">cloud_sync</span>
+              Cargando inventario...
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="script.js"></script>
+</body>
+</html>
