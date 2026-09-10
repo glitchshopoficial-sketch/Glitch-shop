@@ -19,26 +19,50 @@
       <a href="index.html" class="logo logo--lg" aria-label="Volver a inicio">
         <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="logo__img" />
       </a>
-      <h1 class="auth-page__title">
-        <span class="banner__title-accent" data-text="Bienvenido">Bienvenido</span> de vuelta
-      </h1>
-      <p class="auth-page__sub">Accede para sincronizar tu carrito en todos tus dispositivos, guardar pedidos y disfrutar de ofertas VIP.</p>
-      <ul class="auth-page__bullets">
-        <li><span class="material-icons">cloud_done</span> Carrito persistente en la nube</li>
-        <li><span class="material-icons">local_offer</span> Descuentos exclusivos para clientes registrados</li>
-        <li><span class="material-icons">receipt_long</span> Historial de todos tus pedidos</li>
-      </ul>
-      <p class="auth-page__back">
-        <a href="index.html"><span class="material-icons">arrow_back</span> Volver a la tienda</a>
+
+      <h1 class="auth-page__title">Tu tienda gamer favorita</h1>
+      <p class="auth-page__sub">
+        Accede a tu cuenta para guardar tu carrito en la nube, disfrutar de descuentos exclusivos
+        y ver tu historial completo de pedidos.
       </p>
+
+      <ul class="auth-page__bullets">
+        <li>
+          <span class="material-icons auth-page__bullet-icon">cloud_done</span>
+          <div>
+            <strong>Carrito persistente</strong>
+            <span>Tus productos guardados se sincronizan en todos tus dispositivos.</span>
+          </div>
+        </li>
+        <li>
+          <span class="material-icons auth-page__bullet-icon">local_offer</span>
+          <div>
+            <strong>Ofertas VIP</strong>
+            <span>Recibe descuentos exclusivos antes que cualquier otro cliente.</span>
+          </div>
+        </li>
+        <li>
+          <span class="material-icons auth-page__bullet-icon">receipt_long</span>
+          <div>
+            <strong>Historial de pedidos</strong>
+            <span>Consulta en cualquier momento todo lo que has comprado con nosotros.</span>
+          </div>
+        </li>
+      </ul>
+
+      <a href="index.html" class="auth-page__back">
+        <span class="material-icons">arrow_back</span> Volver a la tienda
+      </a>
     </div>
 
     <div class="auth-page__right">
-      <div class="auth-modal__panel" style="width:100%;max-width:480px;margin:0;">
-        <header class="auth-modal__header" style="padding-bottom:10px;">
-          <h3><span class="material-icons">lock_person</span> <span id="authModalTitle">Iniciar sesión</span></h3>
-        </header>
-        <div class="auth-modal__tabs">
+      <div class="auth-panel">
+        <div class="auth-panel__head">
+          <h3 id="authModalTitle">Iniciar sesión</h3>
+          <p id="authPanelSub">Ingresa tu correo y contraseña para entrar.</p>
+        </div>
+
+        <div class="auth-panel__tabs">
           <button class="auth-tab auth-tab--active" data-tab="signin" id="tabSignIn">
             <span class="material-icons">login</span> Iniciar sesión
           </button>
@@ -46,40 +70,44 @@
             <span class="material-icons">person_add</span> Crear cuenta
           </button>
         </div>
-        <div class="auth-modal__body">
-          <form id="authForm" autocomplete="on">
-            <div id="authNameField" hidden>
-              <label class="field-label">Nombre completo</label>
-              <div class="field-wrap">
-                <span class="material-icons field-icon">badge</span>
-                <input type="text" id="authName" placeholder="Tu nombre" autocomplete="name" required />
-              </div>
+
+        <form id="authForm" autocomplete="on" novalidate>
+          <div id="authNameField" hidden>
+            <label class="field-label">Nombre completo</label>
+            <div class="field-wrap">
+              <span class="material-icons field-icon">badge</span>
+              <input type="text" id="authName" placeholder="Tu nombre completo" autocomplete="name" required />
             </div>
-            <div>
-              <label class="field-label">Correo electrónico</label>
-              <div class="field-wrap">
-                <span class="material-icons field-icon">alternate_email</span>
-                <input type="email" id="authEmail" placeholder="tu@correo.com" autocomplete="email" required />
-              </div>
+          </div>
+
+          <div>
+            <label class="field-label">Correo electrónico</label>
+            <div class="field-wrap">
+              <span class="material-icons field-icon">alternate_email</span>
+              <input type="email" id="authEmail" placeholder="tu@correo.com" autocomplete="email" required />
             </div>
-            <div style="margin-top:14px;">
-              <label class="field-label">Contraseña <span class="text-muted">(mínimo 6 caracteres)</span></label>
-              <div class="field-wrap">
-                <span class="material-icons field-icon">lock</span>
-                <input type="password" id="authPassword" placeholder="••••••••" minlength="6" autocomplete="current-password" required />
-              </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <label class="field-label">Contraseña <span class="text-muted">(mínimo 6 caracteres)</span></label>
+            <div class="field-wrap">
+              <span class="material-icons field-icon">lock</span>
+              <input type="password" id="authPassword" placeholder="••••••••" minlength="6" autocomplete="current-password" required />
             </div>
-            <div class="auth-modal__hint" id="authHint" hidden></div>
-            <button class="btn btn--primary w-full" id="authSubmitBtn" style="margin-top:20px;">
-              <span class="material-icons" id="authSubmitIcon">arrow_forward</span>
-              <span id="authSubmitText">Continuar</span>
-            </button>
-            <p class="text-muted" style="margin-top:16px;font-size:12.5px;text-align:center;">
-              Al crear una cuenta aceptas nuestros términos y política de privacidad.
-              <br>Supabase Auth protege tus datos con encriptación AES-256.
-            </p>
-          </form>
-        </div>
+          </div>
+
+          <div class="auth-hint" id="authHint" hidden></div>
+
+          <button class="btn btn--primary w-full auth-submit-btn" id="authSubmitBtn">
+            <span class="material-icons" id="authSubmitIcon">arrow_forward</span>
+            <span id="authSubmitText">Continuar</span>
+          </button>
+
+          <p class="auth-panel__legal">
+            Al continuar aceptas nuestros <a href="index.html">términos</a> y política de privacidad.
+            <br><small>Supabase protege tus datos con encriptación AES-256.</small>
+          </p>
+        </form>
       </div>
     </div>
   </div>

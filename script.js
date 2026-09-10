@@ -337,6 +337,10 @@ function switchAuthTab(tabKey) {
   $('#tabSignUp').classList.toggle('auth-tab--active', !signIn);
   const title = $('#authModalTitle');
   if (title) title.textContent = signIn ? 'Iniciar sesión' : 'Crear cuenta nueva';
+  const sub = document.getElementById('authPanelSub');
+  if (sub) sub.textContent = signIn
+    ? 'Ingresa tu correo y contraseña para entrar.'
+    : 'Crea tu cuenta en 30 segundos. Solo necesitas tu correo.';
   const nameField = $('#authNameField');
   if (nameField) nameField.hidden = signIn;
   const submitText = $('#authSubmitText');
@@ -349,9 +353,17 @@ function switchAuthTab(tabKey) {
 function setAuthModalError(msg, type = 'error') {
   const el = $('#authHint');
   if (!el) return;
-  if (!msg) { el.hidden = true; el.className = 'auth-modal__hint'; el.innerHTML = ''; return; }
+  if (!msg) { el.hidden = true; el.className = 'auth-hint'; el.innerHTML = ''; return; }
   el.hidden = false;
-  el.className = 'auth-modal__hint ' + (type === 'error' ? 'auth-modal__hint--error' : 'auth-modal__hint--success');
+  if (type === 'success') {
+    el.style.background = 'rgba(34, 197, 94, 0.1)';
+    el.style.borderColor = 'rgba(34, 197, 94, 0.35)';
+    el.style.color = '#86efac';
+  } else {
+    el.style.background = 'rgba(239, 68, 68, 0.1)';
+    el.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+    el.style.color = '#fca5a5';
+  }
   el.innerHTML = msg;
 }
 

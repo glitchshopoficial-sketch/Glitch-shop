@@ -1893,6 +1893,7 @@ ul { list-style: none; }
 }
 /* =========================================================
    AUTH PAGE (login.html) — layout 2 columnas splash + panel
+   (Ligero / sin animaciones pesadas / sin requests externos)
    ========================================================= */
 .auth-page {
   min-height: 100vh;
@@ -1915,39 +1916,32 @@ ul { list-style: none; }
   gap: 28px;
   color: var(--text);
   border-right: 1px solid var(--border);
-  position: relative;
 }
-.auth-page__left::after {
-  content: "";
-  position: absolute; inset: 0;
-  background: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=pixel-art%20gaming%20neon%20store%20background%20dark%20aesthetic%20mario%20sonic%20coins%20purple%20blue&image_size=landscape_16_9') center/cover no-repeat;
-  opacity: 0.08;
-  z-index: 0;
-  pointer-events: none;
-}
-.auth-page__left > * { position: relative; z-index: 1; }
 .logo--lg .logo__img {
   height: 64px !important;
   max-width: 260px;
   width: auto !important;
   object-fit: contain;
   border-radius: 14px;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.42);
 }
 .auth-page__title {
   font-family: var(--font-display);
-  font-size: clamp(26px, 3.4vw, 42px);
+  font-size: clamp(26px, 3.2vw, 40px);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
   margin: 0;
+  background: linear-gradient(120deg, #a78bfa 0%, #60a5fa 55%, #f472b6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
-.auth-page__title .banner__title-accent { position: relative; display: inline-block; }
 .auth-page__sub {
   font-size: 15px;
   color: var(--text-muted);
-  max-width: 480px;
-  line-height: 1.6;
+  max-width: 500px;
+  line-height: 1.65;
   margin: 0;
 }
 .auth-page__bullets {
@@ -1959,40 +1953,131 @@ ul { list-style: none; }
   gap: 14px;
 }
 .auth-page__bullets li {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-soft);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  padding: 10px 14px;
+  padding: 14px 16px;
   border-radius: var(--r-md);
-  max-width: 440px;
+  max-width: 480px;
 }
-.auth-page__bullets li .material-icons { color: var(--accent); font-size: 18px; }
-.auth-page__back {
-  margin-top: 6px;
+.auth-page__bullet-icon {
+  width: 40px; height: 40px;
+  flex: 0 0 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  background: rgba(139, 92, 246, 0.12);
+  color: #a78bfa;
+  font-size: 22px;
+}
+.auth-page__bullets li div { display: flex; flex-direction: column; gap: 4px; }
+.auth-page__bullets li strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.auth-page__bullets li span {
   font-size: 13px;
-  font-weight: 500;
-}
-.auth-page__back a {
   color: var(--text-muted);
-  text-decoration: none;
+  line-height: 1.5;
+}
+.auth-page__back {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  transition: color .18s ease;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color .2s ease;
+  width: fit-content;
 }
-.auth-page__back a:hover { color: var(--accent); }
-.auth-page__back a .material-icons { font-size: 16px; }
+.auth-page__back:hover { color: var(--accent); }
+.auth-page__back .material-icons { font-size: 16px; }
 
 .auth-page__right {
   padding: 48px 40px;
   display: grid;
   place-items: center;
 }
+.auth-panel {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 32px 28px;
+  box-shadow: 0 10px 40px -18px rgba(0, 0, 0, 0.55);
+}
+.auth-panel__head { margin-bottom: 20px; }
+.auth-panel__head h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.auth-panel__head p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.auth-panel__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  padding: 6px;
+  border-radius: 14px;
+  margin-bottom: 22px;
+}
+.auth-panel__tabs .auth-tab {
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+.auth-panel__tabs .auth-tab .material-icons { font-size: 18px; }
+.auth-panel__tabs .auth-tab--active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 20px -12px var(--accent);
+}
+.auth-hint {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  line-height: 1.5;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fcd34d;
+}
+.auth-submit-btn {
+  margin-top: 22px;
+  min-height: 48px;
+  font-size: 15px;
+  border-radius: 14px !important;
+}
+.auth-panel__legal {
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  text-align: center;
+}
+.auth-panel__legal a { color: var(--accent); text-decoration: none; font-weight: 600; }
 
 @media (max-width: 960px) {
   .auth-page__wrap {
@@ -2000,7 +2085,7 @@ ul { list-style: none; }
   }
   .auth-page__left {
     padding: 40px 32px 24px;
-    min-height: 320px;
+    min-height: unset;
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
@@ -2009,7 +2094,15 @@ ul { list-style: none; }
   }
 }
 @media (max-width: 560px) {
-  .auth-page__left { padding: 30px 22px 20px; }
-  .auth-page__right { padding: 26px 18px 40px; }
+  .auth-page__left { padding: 28px 20px 20px; }
+  .auth-page__right { padding: 24px 16px 40px; }
   .logo--lg .logo__img { height: 52px !important; }
+  .auth-panel {
+    padding: 24px 18px 22px;
+    border-radius: 16px;
+  }
+  .auth-panel__head h3 { font-size: 21px; }
+  .auth-panel__tabs .auth-tab { font-size: 13px; padding: 10px 8px; }
+  .auth-submit-btn { min-height: 50px; }
 }
+
