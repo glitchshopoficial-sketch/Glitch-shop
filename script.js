@@ -361,6 +361,16 @@ function switchAuthTab(tabKey) {
   if (submitText) submitText.textContent = signIn ? 'Iniciar sesión' : 'Crear mi cuenta';
   const submitIcon = $('#authSubmitIcon');
   if (submitIcon) submitIcon.textContent = signIn ? 'login' : 'how_to_reg';
+  const switchPrompt = document.getElementById('authSwitchPrompt');
+  if (switchPrompt) {
+    switchPrompt.innerHTML = signIn
+      ? '<span>¿No tienes una cuenta aún?</span> <button type="button" class="auth-card__switch-link auth-tab" data-tab="signup">Crear cuenta gratis</button>'
+      : '<span>¿Ya tienes una cuenta registrada?</span> <button type="button" class="auth-card__switch-link auth-tab" data-tab="signin">Iniciar sesión aquí</button>';
+    const switchBtn = switchPrompt.querySelector('.auth-tab');
+    if (switchBtn) {
+      switchBtn.addEventListener('click', () => switchAuthTab(switchBtn.dataset.tab));
+    }
+  }
   setAuthModalError('');
 }
 
@@ -1053,6 +1063,10 @@ function mapDBProduct(row) {
 function bindAuthUi() {
   /* =============== LOGIN PAGE: tabs, submit auth. Sin popover ni modales. =============== */
   if (PAGE === 'login') {
+    const urlTab = new URLSearchParams(window.location.search).get('tab');
+    if (urlTab === 'signup' || urlTab === 'register') {
+      state.authTab = 'signup';
+    }
     switchAuthTab(state.authTab);
     $$('.auth-card__tab, .auth-tab').forEach(t => {
       t.addEventListener('click', () => switchAuthTab(t.dataset.tab));

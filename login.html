@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Iniciar sesión — Glitch Shop</title>
-  <meta name="description" content="Accede o crea tu cuenta en Glitch Shop. Guarda tu carrito, consulta tu historial de pedidos y gestiona tu perfil." />
+  <meta name="description" content="Accede o crea tu cuenta en Glitch Shop. Guarda tu carrito en la nube, consulta tus pedidos y desbloquea descuentos gamer exclusivos." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -13,149 +13,167 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="auth-page">
+  <!-- Fondo decorativo gaming con orbes y malla de partículas -->
+  <div class="auth-bg-decor" aria-hidden="true">
+    <div class="auth-bg-decor__glow auth-bg-decor__glow--1"></div>
+    <div class="auth-bg-decor__glow auth-bg-decor__glow--2"></div>
+    <div class="auth-bg-decor__glow auth-bg-decor__glow--3"></div>
+    <div class="auth-bg-decor__grid"></div>
+  </div>
+
   <div class="auth-page__wrap">
 
-    <!-- ============ COLUMNA IZQUIERDA: SPLASH ============ -->
+    <!-- ============ COLUMNA IZQUIERDA: SPLASH & BENEFICIOS ============ -->
     <aside class="auth-page__left">
-      <a href="index.html" class="auth-page__brand" aria-label="Volver a inicio">
-        <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="auth-page__logo" />
-        <span class="auth-page__brand-name">
-          <b>Glitch</b>Shop
-          <em>Juegos, consolas y más</em>
-        </span>
-      </a>
+      <div class="auth-page__topbar">
+        <a href="index.html" class="auth-page__brand" aria-label="Volver a inicio Glitch Shop">
+          <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="auth-page__logo" />
+          <span class="auth-page__brand-name">
+            <b>Glitch</b>Shop
+            <em>Tienda Gamer Oficial · México</em>
+          </span>
+        </a>
+
+        <a href="index.html" class="auth-page__back-btn" title="Volver a la tienda">
+          <span class="material-icons">arrow_back</span>
+          <span>Volver a la tienda</span>
+        </a>
+      </div>
 
       <div class="auth-page__hero">
-        <span class="auth-page__eyebrow">
-          <span class="material-icons">bolt</span>
-          Bienvenido a la tienda gamer #1
-        </span>
+        <div class="auth-page__eyebrow">
+          <span class="auth-page__pulse"></span>
+          <span>Portal Gamer Oficial</span>
+        </div>
 
         <h1 class="auth-page__title">
-          Tu pasión gamer,
-          <span class="auth-page__title-accent">un login de distancia.</span>
+          Tu universo gamer,<br />
+          <span class="auth-page__title-accent">todo en un solo lugar.</span>
         </h1>
 
         <p class="auth-page__sub">
-          Entra para sincronizar tu carrito en la nube, recibir ofertas exclusivas
-          antes que nadie y acceder a tu historial completo de pedidos.
+          Inicia sesión para sincronizar tu carrito en la nube, acceder a promociones
+          exclusivas de fin de semana y gestionar tus pedidos de consolas y videojuegos.
         </p>
       </div>
 
-      <ul class="auth-page__features">
-        <li>
-          <span class="auth-page__feat-icon" style="--c:#a78bfa">
+      <div class="auth-page__features">
+        <div class="auth-page__feature-card">
+          <div class="auth-page__feat-icon" style="--c:#8b5cf6">
             <span class="material-icons">cloud_done</span>
-          </span>
-          <div>
+          </div>
+          <div class="auth-page__feat-content">
             <strong>Carrito en la nube</strong>
-            <p>Guarda tu selección en cualquier dispositivo. No pierdes nada.</p>
-          </div>
-        </li>
-        <li>
-          <span class="auth-page__feat-icon" style="--c:#f472b6">
-            <span class="material-icons">local_offer</span>
-          </span>
-          <div>
-            <strong>Ofertas VIP registrados</strong>
-            <p>Descuentos especiales todos los sábados para miembros.</p>
-          </div>
-        </li>
-        <li>
-          <span class="auth-page__feat-icon" style="--c:#60a5fa">
-            <span class="material-icons">receipt_long</span>
-          </span>
-          <div>
-            <strong>Historial de pedidos</strong>
-            <p>Consulta, reordena y sigue tus envíos desde un solo lugar.</p>
-          </div>
-        </li>
-      </ul>
-
-      <div class="auth-page__trust">
-        <div>
-          <span class="material-icons" style="color:#22c55e;">verified</span>
-          <div>
-            <b>Checkout por WhatsApp</b>
-            <small>Pago directo con el dueño, sin sorpresas.</small>
+            <p>Guarda tus juegos y consolas en tiempo real y continúa tu compra en cualquier dispositivo.</p>
           </div>
         </div>
-        <div>
-          <span class="material-icons" style="color:#60a5fa;">enhanced_encryption</span>
-          <div>
-            <b>Supabase Auth</b>
-            <small>Datos protegidos con encriptación AES-256.</small>
+
+        <div class="auth-page__feature-card">
+          <div class="auth-page__feat-icon" style="--c:#ec4899">
+            <span class="material-icons">local_offer</span>
+          </div>
+          <div class="auth-page__feat-content">
+            <strong>Precios y preventas VIP</strong>
+            <p>Descuentos especiales cada sábado y acceso prioritario a títulos y consolas de estreno.</p>
+          </div>
+        </div>
+
+        <div class="auth-page__feature-card">
+          <div class="auth-page__feat-icon" style="--c:#06b6d4">
+            <span class="material-icons">chat</span>
+          </div>
+          <div class="auth-page__feat-content">
+            <strong>Checkout directo por WhatsApp</strong>
+            <p>Atención personalizada en México, confirmación inmediata y seguimiento directo con el dueño.</p>
           </div>
         </div>
       </div>
 
-      <a href="index.html" class="auth-page__back">
-        <span class="material-icons">arrow_back</span>
-        Seguir explorando la tienda
-      </a>
+      <div class="auth-page__trust">
+        <div class="auth-page__trust-item">
+          <span class="material-icons" style="color:#22c55e;">verified_user</span>
+          <div>
+            <b>Autenticación Supabase</b>
+            <small>Cifrado de grado militar AES-256</small>
+          </div>
+        </div>
+        <div class="auth-page__trust-item">
+          <span class="material-icons" style="color:#60a5fa;">local_shipping</span>
+          <div>
+            <b>Envíos a todo México</b>
+            <small>Garantía de entrega y atención directa</small>
+          </div>
+        </div>
+      </div>
     </aside>
 
     <!-- ============ COLUMNA DERECHA: FORMULARIO ============ -->
     <main class="auth-page__right">
-      <section class="auth-card" aria-label="Formulario de acceso">
+      <section class="auth-card" aria-label="Formulario de acceso a cuenta">
 
         <header class="auth-card__head">
-          <div>
+          <div class="auth-card__header-meta">
             <span class="auth-card__tag" id="authTag">Accede a tu cuenta</span>
-            <h2 class="auth-card__title" id="authModalTitle">Iniciar sesión</h2>
-            <p class="auth-card__sub" id="authPanelSub">Ingresa tu correo y contraseña para entrar a tu cuenta.</p>
+            <div class="auth-card__secure" title="Conexión encriptada con SSL">
+              <span class="material-icons">lock</span>
+              <span>Conexión segura</span>
+            </div>
           </div>
-          <div class="auth-card__secure">
-            <span class="material-icons">lock</span>
-            <span>Conexión segura</span>
-          </div>
+          <h2 class="auth-card__title" id="authModalTitle">Iniciar sesión</h2>
+          <p class="auth-card__sub" id="authPanelSub">Ingresa tu correo y contraseña para entrar a tu cuenta.</p>
         </header>
 
         <nav class="auth-card__tabs" aria-label="Tipo de acceso">
           <button type="button" class="auth-card__tab auth-card__tab--active" data-tab="signin" id="tabSignIn">
             <span class="material-icons">login</span>
-            Iniciar sesión
+            <span>Iniciar sesión</span>
           </button>
           <button type="button" class="auth-card__tab" data-tab="signup" id="tabSignUp">
             <span class="material-icons">person_add</span>
-            Crear cuenta
+            <span>Crear cuenta</span>
           </button>
         </nav>
 
         <form id="authForm" class="auth-card__form" autocomplete="on" novalidate>
-          <div id="authNameField" hidden>
-            <label for="authName" class="auth-card__label">Nombre completo</label>
+          <div id="authNameField" class="auth-card__group" hidden>
+            <label for="authName" class="auth-card__label">
+              <span>Nombre completo</span>
+            </label>
             <div class="auth-card__field">
               <span class="material-icons auth-card__field-icon">badge</span>
               <input id="authName" type="text" placeholder="Tu nombre y apellidos" autocomplete="name" required />
             </div>
           </div>
 
-          <div>
-            <label for="authEmail" class="auth-card__label">Correo electrónico</label>
+          <div class="auth-card__group">
+            <label for="authEmail" class="auth-card__label">
+              <span>Correo electrónico</span>
+            </label>
             <div class="auth-card__field">
               <span class="material-icons auth-card__field-icon">alternate_email</span>
               <input id="authEmail" type="email" placeholder="tu@correo.com" autocomplete="email" required />
             </div>
           </div>
 
-          <div>
+          <div class="auth-card__group">
             <div class="auth-card__label-row">
-              <label for="authPassword" class="auth-card__label">Contraseña</label>
-              <button type="button" class="auth-card__link" id="forgotBtn" hidden>
+              <label for="authPassword" class="auth-card__label">
+                <span>Contraseña</span>
+              </label>
+              <button type="button" class="auth-card__link" id="forgotBtn">
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
             <div class="auth-card__field">
               <span class="material-icons auth-card__field-icon">lock</span>
               <input id="authPassword" type="password" placeholder="••••••••" minlength="6" autocomplete="current-password" required />
-              <button type="button" class="auth-card__eye" id="togglePassword" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+              <button type="button" class="auth-card__eye" id="togglePassword" aria-label="Mostrar u ocultar contraseña" title="Mostrar u ocultar contraseña">
                 <span class="material-icons">visibility</span>
               </button>
             </div>
             <div class="auth-card__label-hint">
-              <span class="material-icons">info</span>
-              Mínimo 6 caracteres. No compartas tu contraseña con nadie.
+              <span class="material-icons">shield</span>
+              <span>Mínimo 6 caracteres · Datos cifrados</span>
             </div>
           </div>
 
@@ -163,18 +181,25 @@
 
           <button type="submit" class="auth-card__submit" id="authSubmitBtn">
             <span class="material-icons" id="authSubmitIcon">arrow_forward</span>
-            <span id="authSubmitText">Continuar</span>
+            <span id="authSubmitText">Iniciar sesión</span>
             <span class="auth-card__submit-loader" hidden>
               <span class="material-icons auth-card__spin">progress_activity</span>
             </span>
           </button>
 
-          <div class="auth-card__divider"><span>o continúa</span></div>
+          <div class="auth-card__divider"></div>
+
+          <div class="auth-card__switch" id="authSwitchPrompt">
+            <span>¿No tienes una cuenta aún?</span>
+            <button type="button" class="auth-card__switch-link auth-tab" data-tab="signup">
+              Crear cuenta gratis
+            </button>
+          </div>
 
           <p class="auth-card__legal">
-            Al continuar aceptas nuestros <a href="index.html">Términos</a>
-            · <a href="index.html">Política de Privacidad</a>.
-            Los correos de verificación los enviamos desde <b>glitchshopoficial@gmail.com</b>.
+            Al continuar aceptas nuestros <a href="index.html">Términos</a> y <a href="index.html">Privacidad</a>.
+            <br>
+            <small>Los correos de verificación se envían desde <b>glitchshopoficial@gmail.com</b></small>
           </p>
         </form>
 
