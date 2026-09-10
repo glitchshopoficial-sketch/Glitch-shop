@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo — Glitch Shop | Juegos, Consolas y Accesorios</title>
+  <meta name="description" content="Explora el catálogo completo de Glitch Shop: consolas, videojuegos, accesorios y merchandising oficial. Envíos a toda la República Mexicana." />
+
+  <!-- GOOGLE FONTS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- GOOGLE MATERIAL ICONS -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Round" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="header__top">
+      <div class="container header__top-inner">
+
+        <a href="index.html" class="logo" aria-label="Glitch Shop Inicio">
+          <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="logo__img" />
+        </a>
+
+        <form class="search" onsubmit="event.preventDefault();" role="search">
+          <span class="material-icons search__icon">search</span>
+          <input type="text" class="search__input" placeholder="Buscar juegos, consolas, accesorios…" aria-label="Buscar productos" />
+          <button type="submit" class="search__btn" aria-label="Buscar">
+            <span class="material-icons">tune</span>
+          </button>
+        </form>
+
+        <div class="header__actions">
+          <button class="icon-btn" aria-label="Mi cuenta">
+            <span class="material-icons-outlined">person_outline</span>
+          </button>
+          <button class="icon-btn cart-btn" id="cartBtn" aria-label="Carrito de compras">
+            <span class="material-icons-outlined">shopping_bag_outlined</span>
+            <span class="cart-count" id="cartCount">0</span>
+          </button>
+          <button class="hamburger" id="hamburger" aria-label="Abrir menú" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav" aria-label="Navegación principal">
+      <div class="container nav__inner">
+        <ul class="nav__list">
+          <li><a href="index.html" class="nav__link">
+            <span class="material-icons">home</span> Inicio
+          </a></li>
+          <li><a href="#todos" class="nav__link nav__link--active" data-category="all">
+            <span class="material-icons">grid_view</span> Todos
+          </a></li>
+          <li><a href="#juegos" class="nav__link" data-category="juegos">
+            <span class="material-icons">sports_esports</span> Juegos
+          </a></li>
+          <li><a href="#consolas" class="nav__link" data-category="consolas">
+            <span class="material-icons">gamepad</span> Consolas
+          </a></li>
+          <li><a href="#accesorios" class="nav__link" data-category="accesorios">
+            <span class="material-icons">headset_mic</span> Accesorios
+          </a></li>
+          <li><a href="#merch" class="nav__link" data-category="merch">
+            <span class="material-icons">storefront</span> Merchandising
+          </a></li>
+          <li><a href="#ofertas" class="nav__link nav__link--offer" data-category="ofertas">
+            <span class="material-icons">local_fire_department</span> Ofertas
+          </a></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ===== CATALOG HEADER ===== -->
+    <section class="catalog-hero">
+      <div class="container">
+        <div class="catalog-hero__inner">
+          <div>
+            <h1 class="banner__title">
+              <span class="banner__title-accent" data-text="Catálogo">Catálogo</span> Completo
+            </h1>
+            <p class="banner__desc" style="margin-bottom:0;">Los mejores productos gaming — Lanzamientos, ediciones limitadas, accesorios premium y merchandising oficial. Todos los precios en MXN con IVA incluido.</p>
+            <span class="banner__pill">
+              <span class="material-icons">storefront</span>
+              Tienda oficial
+            </span>
+          </div>
+          <div class="catalog-hero__badges">
+            <div class="feature feature--inline">
+              <div class="feature__icon"><span class="material-icons-outlined">local_shipping</span></div>
+              <div><b>Envío gratis</b><p>≥ $2,500 MXN</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CATALOG ===== -->
+    <section class="catalog" id="catalog">
+      <div class="container">
+        <div class="catalog__header">
+          <div>
+            <h2 class="section-title">Explora la selección</h2>
+            <p class="section-subtitle">Filtra por categoría, plataforma, precio y disponibilidad. Precios en MXN.</p>
+          </div>
+          <div class="catalog__count">
+            <span class="material-icons">inventory_2</span>
+            <span id="productCount">0</span> productos
+          </div>
+        </div>
+
+        <div class="catalog__layout">
+          <!-- ===== FILTERS ===== -->
+          <aside class="filters" aria-label="Filtros de búsqueda">
+            <div class="filters__group">
+              <h3 class="filters__title"><span class="material-icons">search</span> Buscar</h3>
+              <div class="filters__search">
+                <input type="text" class="catalog-search__input" id="filterSearchInput" placeholder="Buscar por título, consola..." aria-label="Buscar en catálogo" />
+              </div>
+            </div>
+
+            <div class="filters__group">
+              <h3 class="filters__title"><span class="material-icons">category</span> Categoría</h3>
+              <div class="filters__options">
+                <label class="chip"><input type="checkbox" value="all" class="f-category" checked /><span>Todos</span></label>
+                <label class="chip"><input type="checkbox" value="consolas" class="f-category" /><span>Consolas</span></label>
+                <label class="chip"><input type="checkbox" value="juegos" class="f-category" /><span>Juegos</span></label>
+                <label class="chip"><input type="checkbox" value="accesorios" class="f-category" /><span>Accesorios</span></label>
+                <label class="chip"><input type="checkbox" value="merch" class="f-category" /><span>Merchandising</span></label>
+              </div>
+            </div>
+
+            <div class="filters__group">
+              <h3 class="filters__title"><span class="material-icons">devices</span> Plataforma</h3>
+              <div class="filters__options">
+                <label class="chip chip--platform ps"><input type="checkbox" value="playstation" class="f-platform" /><span>PlayStation</span></label>
+                <label class="chip chip--platform xbox"><input type="checkbox" value="xbox" class="f-platform" /><span>Xbox</span></label>
+                <label class="chip chip--platform switch"><input type="checkbox" value="nintendo" class="f-platform" /><span>Nintendo</span></label>
+                <label class="chip chip--platform pc"><input type="checkbox" value="pc" class="f-platform" /><span>PC</span></label>
+              </div>
+            </div>
+
+            <div class="filters__group">
+              <h3 class="filters__title"><span class="material-icons">payments</span> Precio (MXN)</h3>
+              <div class="range">
+                <input type="range" id="priceRange" min="200" max="50000" value="50000" step="100" />
+                <div class="range__labels">
+                  <span>$200</span>
+                  <span id="priceValue">$50,000</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="filters__group">
+              <h3 class="filters__title"><span class="material-icons">inventory</span> Disponibilidad</h3>
+              <div class="filters__options filters__options--stack">
+                <label class="radio"><input type="radio" name="stock" value="all" checked /><span>Todos los productos</span></label>
+                <label class="radio"><input type="radio" name="stock" value="available" /><span>En stock</span></label>
+                <label class="radio"><input type="radio" name="stock" value="offer" /><span>En oferta</span></label>
+              </div>
+            </div>
+
+            <button class="btn btn--ghost w-full" id="resetFilters">
+              <span class="material-icons">refresh</span> Limpiar filtros
+            </button>
+          </aside>
+
+          <!-- ===== PRODUCTS ===== -->
+          <div class="products">
+            <div class="products__toolbar">
+              <div class="view-toggle" role="group" aria-label="Vista de productos">
+                <button class="view-toggle__btn view-toggle__btn--active" data-view="grid" aria-label="Vista de cuadrícula">
+                  <span class="material-icons">grid_view</span>
+                </button>
+                <button class="view-toggle__btn" data-view="list" aria-label="Vista de lista">
+                  <span class="material-icons">view_list</span>
+                </button>
+              </div>
+              <select class="select" id="sortSelect" aria-label="Ordenar productos">
+                <option value="featured">⭐ Destacados</option>
+                <option value="price-asc">💵 Precio: Menor a mayor</option>
+                <option value="price-desc">💰 Precio: Mayor a menor</option>
+                <option value="name">🔤 Nombre: A - Z</option>
+              </select>
+            </div>
+
+            <div class="products__grid" id="productsGrid" aria-live="polite">
+              <!-- Products rendered by JS -->
+            </div>
+
+            <div class="empty" id="emptyState" hidden>
+              <div class="empty__icon"><span class="material-icons">sentiment_dissatisfied</span></div>
+              <h3>Sin resultados</h3>
+              <p>Ajusta los filtros para ver más productos.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div class="footer__col footer__col--brand">
+        <a href="index.html" class="logo logo--footer">
+          <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="logo__img" />
+        </a>
+        <p class="footer__about">Tienda oficial de videojuegos con la mejor selección de consolas, accesorios y merchandising. ¡Vive la experiencia Glitch en todo México!</p>
+        <div class="socials">
+          <a href="#" aria-label="Facebook" class="socials__link"><span class="material-icons">facebook</span></a>
+          <a href="#" aria-label="Instagram" class="socials__link"><span class="material-icons">photo_camera</span></a>
+          <a href="#" aria-label="Twitter / X" class="socials__link"><span class="material-icons">alternate_email</span></a>
+          <a href="#" aria-label="WhatsApp" class="socials__link"><span class="material-icons">chat</span></a>
+          <a href="#" aria-label="YouTube" class="socials__link"><span class="material-icons">smart_display</span></a>
+        </div>
+      </div>
+
+      <div class="footer__col">
+        <h4 class="footer__title">Sobre nosotros</h4>
+        <ul class="footer__list">
+          <li><a href="#"><span class="material-icons">info</span> Quiénes somos</a></li>
+          <li><a href="#"><span class="material-icons">work</span> Trabaja con nosotros</a></li>
+          <li><a href="#"><span class="material-icons">article</span> Prensa y noticias</a></li>
+          <li><a href="#"><span class="material-icons">group</span> Programa de afiliados</a></li>
+        </ul>
+      </div>
+
+      <div class="footer__col">
+        <h4 class="footer__title">Ayuda y Soporte</h4>
+        <ul class="footer__list">
+          <li><a href="#"><span class="material-icons">help_center</span> Centro de ayuda</a></li>
+          <li><a href="#"><span class="material-icons">local_shipping</span> Rastrear pedido</a></li>
+          <li><a href="#"><span class="material-icons">call</span> Contáctanos</a></li>
+          <li><a href="#"><span class="material-icons">chat_bubble</span> Chat en vivo</a></li>
+        </ul>
+      </div>
+
+      <div class="footer__col">
+        <h4 class="footer__title">Políticas</h4>
+        <ul class="footer__list">
+          <li><a href="#"><span class="material-icons">local_shipping</span> Envíos y entrega</a></li>
+          <li><a href="#"><span class="material-icons">assignment_return</span> Devoluciones y cambios</a></li>
+          <li><a href="#"><span class="material-icons">description</span> Términos y condiciones</a></li>
+          <li><a href="#"><span class="material-icons">privacy_tip</span> Privacidad y seguridad</a></li>
+        </ul>
+      </div>
+
+      <div class="footer__col">
+        <h4 class="footer__title">Métodos de pago</h4>
+        <div class="payments">
+          <div class="payments__card" title="Visa"><span class="material-icons">credit_score</span> VISA</div>
+          <div class="payments__card" title="Mastercard"><span class="material-icons">payments</span> MC</div>
+          <div class="payments__card" title="American Express"><span class="material-icons">credit_card</span> AMEX</div>
+          <div class="payments__card" title="PayPal"><span class="material-icons">account_balance_wallet</span> PP</div>
+          <div class="payments__card" title="OXXO / SPEI"><span class="material-icons">point_of_sale</span> OXXO</div>
+        </div>
+        <p class="footer__payment-note"><span class="material-icons">shield</span> Pagos 100% encriptados y seguros. SSL Certificate.</p>
+      </div>
+    </div>
+    <div class="footer__bottom container">
+      <p>© 2026 Glitch Shop. Todos los derechos reservados. Hecho en <span class="material-icons" style="font-size:14px;vertical-align:-2px;color:#ef4444;">favorite</span> México</p>
+    </div>
+  </footer>
+
+  <!-- ===== CART DRAWER ===== -->
+  <aside class="cart-drawer" id="cartDrawer" aria-hidden="true" aria-label="Carrito de compras">
+    <div class="cart-drawer__overlay" data-close></div>
+    <div class="cart-drawer__panel" role="dialog" aria-modal="true">
+      <header class="cart-drawer__header">
+        <h3><span class="material-icons">shopping_bag</span> Tu carrito</h3>
+        <button class="icon-btn" data-close aria-label="Cerrar carrito">
+          <span class="material-icons">close</span>
+        </button>
+      </header>
+      <div class="cart-drawer__body" id="cartItems">
+        <p class="cart-drawer__empty">
+          <span class="material-icons" style="font-size:48px;opacity:.5;display:block;margin-bottom:8px;">remove_shopping_cart</span>
+          Tu carrito está vacío
+        </p>
+      </div>
+      <footer class="cart-drawer__footer" id="cartFooter" hidden>
+        <div class="cart-drawer__row">
+          <span>Subtotal</span>
+          <span id="cartSubtotal">$0.00</span>
+        </div>
+        <div class="cart-drawer__row cart-drawer__row--muted">
+          <span>Envío</span>
+          <span id="cartShipping">Calculado al finalizar</span>
+        </div>
+        <div class="cart-drawer__row cart-drawer__row--total">
+          <span>Total</span>
+          <span id="cartTotal">$0.00</span>
+        </div>
+        <button class="btn btn--primary w-full" id="checkoutBtn">
+          <span class="material-icons">lock</span> Finalizar compra
+        </button>
+        <p class="cart-drawer__secure">
+          <span class="material-icons" style="font-size:14px;vertical-align:-3px;">verified_user</span>
+          Pago seguro · 3D Secure · SSL
+        </p>
+      </footer>
+    </div>
+  </aside>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
