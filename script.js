@@ -230,12 +230,10 @@ function renderAuthUI() {
   const openAdminBtn = $('#openAdminBtn');
   const badgeAdmin = $('#badgeAdmin');
   const authIcon = $('#authIcon');
-  const authBtnLogin = $('#authBtnLogin');   /* <a href="login.html" target=_blank>  (sesión NO iniciada) */
-  const authBtn = $('#authBtn');             /* <button> + popover (sesión SÍ iniciada) */
+  const authBtn = $('#authBtn');   /* ÚNICO elemento: <a href="login.html">  (invitado) / toggle popover (logeado) */
 
   /* =============== LOGIN PAGE =============== */
   if (PAGE === 'login') {
-    /* Si ya hay sesión activa en login.html: redirigir a la tienda o cerrar ventana */
     if (state.user) {
       showToast('Bienvenido de vuelta 🎮 — Redirigiendo…', 'success');
       setTimeout(() => {
@@ -255,7 +253,6 @@ function renderAuthUI() {
     const btnRefresh = $('#adminRefreshBtn');
 
     if (!state.user || !state.user.isAdmin) {
-      /* Bloquear acceso */
       if (notAllowed) notAllowed.hidden = false;
       if (container) container.hidden = true;
       if (btnAdd) btnAdd.disabled = true;
@@ -269,32 +266,34 @@ function renderAuthUI() {
       if (subtitle) subtitle.innerHTML = `¡Hola <b>${state.user.name || state.user.email}</b>! Gestiona el catálogo, inventario y ofertas.`;
       renderAdminList();
     }
-    /* También render popover si existe */
-    if (loggedIn && state.user) {
-      const avatar = $('#userAvatar');
-      if (avatar) avatar.textContent = initialsOf(state.user.name, state.user.email);
-      const uName = $('#userName');
-      if (uName) uName.textContent = state.user.name || 'Usuario';
-      const uEmail = $('#userEmail');
-      if (uEmail) uEmail.textContent = state.user.email || '';
-      if (badgeAdmin) badgeAdmin.hidden = !state.user.isAdmin;
-    }
-    return;
+    /* caer al final para también aplicar lógica del botón auth */
   }
 
-  /* =============== STORE PAGE (index / catalogo) =============== */
+  /* =============== SHARED (admin + store) authBtn según sesión =============== */
   if (!state.user) {
-    /* USUARIO INVITADO: mostrar link a login.html (pestaña nueva), ocultar botón popover */
-    if (authBtnLogin) authBtnLogin.hidden = false;
-    if (authBtn) authBtn.hidden = true;
+    /* ------ INVITADO: comportamiento normal link a login.html target=_blank ------ */
+    if (authBtn) {
+      authBtn.setAttribute('href', 'login.html');
+      authBtn.setAttribute('target', '_blank');
+      authBtn.setAttribute('rel', 'noopener');
+      authBtn.setAttribute('title', 'Iniciar sesión o crear cuenta');
+      authBtn.setAttribute('aria-label', 'Iniciar sesión');
+      /* Quitar handlers popover (preventDefault) si existen (en bind se asegura también) */
+    }
     if (authIcon) authIcon.textContent = 'person_outline';
     if (popover) popover.hidden = true;
   } else {
-    /* USUARIO LOGEADO: ocultar link, mostrar botón popover */
-    if (authBtnLogin) authBtnLogin.hidden = true;
-    if (authBtn) authBtn.hidden = false;
+    /* ------ LOGEADO: anular link, convertir en botón popover ------ */
+    if (authBtn) {
+      authBtn.setAttribute('href', '#account');
+      authBtn.removeAttribute('target');
+      authBtn.removeAttribute('rel');
+      authBtn.setAttribute('title', 'Mi cuenta');
+      authBtn.setAttribute('aria-label', 'Mi cuenta');
+    }
     if (authIcon) authIcon.textContent = 'person';
     if (loggedIn) loggedIn.hidden = false;
+
     const avatar = $('#userAvatar');
     if (avatar) avatar.textContent = initialsOf(state.user.name, state.user.email);
     const uName = $('#userName');
@@ -1026,30 +1025,48 @@ function mapDBProduct(row) {
 function bindAuthUi() {
   /* =============== LOGIN PAGE: tabs, submit auth. Sin popover ni modales. =============== */
   if (PAGE === 'login') {
-    /* Inicializar tabs por default */
     switchAuthTab(state.authTab);
-
     $$('.auth-tab').forEach(t => t.addEventListener('click', () => switchAuthTab(t.dataset.tab)));
-
     const authForm = $('#authForm');
     if (authForm) authForm.addEventListener('submit', handleAuthSubmit);
-
-    /* Cerrar con ESC solo opcional, no hay modal */
     return;
   }
 
-  /* =============== ADMIN PAGE: popover perfil, cerrar sesión, botones toolbar admin. =============== */
+  /* =============== ADMIN + STORE: ÚNICO <a> id=authBtn.
+     - Si NO hay sesión: comportamiento normal link a login.html (target=_blank). NO bind event.
+     - Si SÍ hay sesión: bind click preventDefault -> toggle popover.  =============== */
   const authBtn = $('#authBtn');
   const popover = $('#authPopover');
-  if (authBtn) authBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    toggleAuthPopover();
-  });
+
+  const refreshAuthBtnBindings = () => {
+    if (!authBtn) return;
+    /* Primero clonar y reemplazar para quitar listeners anteriores (no queremos que se acumulen) */
+    authBtn.onclick = null;
+    authBtn.removeEventListener('click', state._authBtnListener);
+
+    if (!state.user) {
+      /* Invitado: NO attachar click handler. Se respeta href=login.html target=_blank */
+      state._authBtnListener = null;
+    } else {
+      /* Logeado: attach click preventDefault + toggle popover */
+      state._authBtnListener = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleAuthPopover();
+      };
+      authBtn.addEventListener('click', state._authBtnListener);
+    }
+  };
+
+  refreshAuthBtnBindings();
+  /* Cada vez que cambia la sesión re-bindea por si cambió el rol */
+  supabase.auth.onAuthStateChange(() => setTimeout(refreshAuthBtnBindings, 150));
+
+  /* Cerrar popover al click fuera */
   document.addEventListener('click', e => {
     if (popover && !popover.contains(e.target) && !authBtn.contains(e.target)) popover.hidden = true;
   });
 
-  /* SignOut */
   const signOutBtn = $('#signOutBtn');
   if (signOutBtn) signOutBtn.addEventListener('click', handleSignOut);
 
@@ -1059,14 +1076,12 @@ function bindAuthUi() {
   const adminAdd = $('#adminAddBtn');
   if (adminAdd) adminAdd.addEventListener('click', () => showToast('Añadir producto: próximo release. Usa Supabase SQL Editor por ahora ⚙️', 'warn'));
 
-  if (PAGE === 'admin') return; /* Pagina admin no necesita más bindeos */
+  if (PAGE === 'admin') return;
 
-  /* =============== STORE PAGE (index/catalogo): popover user + link admin =============== */
-  /* adminBtn es ahora un <a href="admin.html" target="_blank"> asi que no necesita JS extra */
+  /* STORE: click link panel admin cierra el popover */
   const adminBtn = $('#openAdminBtn');
   if (adminBtn) adminBtn.addEventListener('click', () => toggleAuthPopover(false));
 
-  /* Esc (solo cierra popover cart ya que no hay modales auth/admin en store) */
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       toggleAuthPopover(false);
