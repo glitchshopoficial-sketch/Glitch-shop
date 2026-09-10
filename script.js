@@ -331,18 +331,32 @@ function toggleAuthModal(forceShow) {
 
 function switchAuthTab(tabKey) {
   state.authTab = tabKey;
-  $$('.auth-tab').forEach(t => t.classList.toggle('auth-tab--active', t.dataset.tab === tabKey));
+  $$('.auth-card__tab, .auth-tab').forEach(t => {
+    t.classList.toggle('auth-card__tab--active', t.dataset.tab === tabKey);
+    t.classList.toggle('auth-tab--active', t.dataset.tab === tabKey);
+  });
   const signIn = tabKey === 'signin';
-  $('#tabSignIn').classList.toggle('auth-tab--active', signIn);
-  $('#tabSignUp').classList.toggle('auth-tab--active', !signIn);
+  const tSI = $('#tabSignIn'); if (tSI) {
+    tSI.classList.toggle('auth-card__tab--active', signIn);
+    tSI.classList.toggle('auth-tab--active', signIn);
+  }
+  const tSU = $('#tabSignUp'); if (tSU) {
+    tSU.classList.toggle('auth-card__tab--active', !signIn);
+    tSU.classList.toggle('auth-tab--active', !signIn);
+  }
   const title = $('#authModalTitle');
   if (title) title.textContent = signIn ? 'Iniciar sesión' : 'Crear cuenta nueva';
+  const tag = document.getElementById('authTag');
+  if (tag) tag.textContent = signIn ? 'Accede a tu cuenta' : 'Únete a la comunidad Glitch';
   const sub = document.getElementById('authPanelSub');
   if (sub) sub.textContent = signIn
-    ? 'Ingresa tu correo y contraseña para entrar.'
-    : 'Crea tu cuenta en 30 segundos. Solo necesitas tu correo.';
+    ? 'Ingresa tu correo y contraseña para entrar a tu cuenta.'
+    : 'Crea tu cuenta en 30 segundos. Solo necesitas tu correo y una contraseña.';
   const nameField = $('#authNameField');
   if (nameField) nameField.hidden = signIn;
+  /* Olvidaste tu contraseña solo visible en tab signin */
+  const forgotBtn = document.getElementById('forgotBtn');
+  if (forgotBtn) forgotBtn.hidden = !signIn;
   const submitText = $('#authSubmitText');
   if (submitText) submitText.textContent = signIn ? 'Iniciar sesión' : 'Crear mi cuenta';
   const submitIcon = $('#authSubmitIcon');
@@ -355,15 +369,7 @@ function setAuthModalError(msg, type = 'error') {
   if (!el) return;
   if (!msg) { el.hidden = true; el.className = 'auth-hint'; el.innerHTML = ''; return; }
   el.hidden = false;
-  if (type === 'success') {
-    el.style.background = 'rgba(34, 197, 94, 0.1)';
-    el.style.borderColor = 'rgba(34, 197, 94, 0.35)';
-    el.style.color = '#86efac';
-  } else {
-    el.style.background = 'rgba(239, 68, 68, 0.1)';
-    el.style.borderColor = 'rgba(239, 68, 68, 0.35)';
-    el.style.color = '#fca5a5';
-  }
+  el.className = 'auth-hint ' + type;
   el.innerHTML = msg;
 }
 
@@ -376,7 +382,14 @@ async function handleAuthSubmit(e) {
   const email = ($('#authEmail').value || '').trim();
   const password = ($('#authPassword').value || '');
   if (!email || !password) return;
-  const btn = $('#authSubmitBtn'); if (btn) btn.disabled = true;
+  const btn = $('#authSubmitBtn');
+  const loader = document.querySelector('.auth-card__submit-loader');
+  const iconSubmit = document.getElementById('authSubmitIcon');
+  const textSubmit = document.getElementById('authSubmitText');
+  if (btn) btn.disabled = true;
+  if (loader) loader.hidden = false;
+  if (iconSubmit) iconSubmit.hidden = true;
+  if (textSubmit) textSubmit.hidden = true;
   setAuthModalError('');
   try {
     if (state.authTab === 'signin') {
@@ -405,7 +418,7 @@ async function handleAuthSubmit(e) {
         }
       });
       if (error) throw error;
-      setAuthModalError('✅ <b>Cuenta creada</b>. Te enviamos un correo de verificación a <b>' + email + '</b>. Revisa tu bandeja de entrada (y spam si no llega) para confirmarla antes de iniciar sesión.', 'success');
+      setAuthModalError('✅ <b>Cuenta creada</b>. Te enviamos un correo de verificación a <b>' + email + '</b> desde glitchshopoficial@gmail.com. Revisa tu bandeja de entrada (y spam si no llega) para confirmarla antes de iniciar sesión.', 'success');
     }
   } catch (err) {
     let msg = err.message || 'Error desconocido.';
@@ -415,6 +428,9 @@ async function handleAuthSubmit(e) {
     setAuthModalError('❌ ' + msg, 'error');
   } finally {
     if (btn) btn.disabled = false;
+    if (loader) loader.hidden = true;
+    if (iconSubmit) iconSubmit.hidden = false;
+    if (textSubmit) textSubmit.hidden = false;
   }
 }
 
@@ -1038,9 +1054,53 @@ function bindAuthUi() {
   /* =============== LOGIN PAGE: tabs, submit auth. Sin popover ni modales. =============== */
   if (PAGE === 'login') {
     switchAuthTab(state.authTab);
-    $$('.auth-tab').forEach(t => t.addEventListener('click', () => switchAuthTab(t.dataset.tab)));
+    $$('.auth-card__tab, .auth-tab').forEach(t => {
+      t.addEventListener('click', () => switchAuthTab(t.dataset.tab));
+    });
     const authForm = $('#authForm');
     if (authForm) authForm.addEventListener('submit', handleAuthSubmit);
+
+    /* Botón ojito: mostrar / ocultar contraseña */
+    const eyeBtn = document.getElementById('togglePassword');
+    const passInput = document.getElementById('authPassword');
+    if (eyeBtn && passInput) {
+      eyeBtn.addEventListener('click', () => {
+        const isHidden = passInput.type === 'password';
+        passInput.type = isHidden ? 'text' : 'password';
+        const icon = eyeBtn.querySelector('.material-icons');
+        if (icon) icon.textContent = isHidden ? 'visibility_off' : 'visibility';
+        eyeBtn.setAttribute('aria-label', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        eyeBtn.setAttribute('title', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+      });
+    }
+
+    /* Botón "Olvidaste tu contraseña": manda reset password por correo */
+    const forgotBtn = document.getElementById('forgotBtn');
+    if (forgotBtn) {
+      forgotBtn.addEventListener('click', async () => {
+        const emailInput = document.getElementById('authEmail');
+        const email = emailInput ? (emailInput.value || '').trim() : '';
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+          setAuthModalError('⚠️ Escribe primero tu <b>correo electrónico</b> en el campo de arriba y luego presiona "Olvidaste tu contraseña".', 'warn');
+          if (emailInput) emailInput.focus();
+          return;
+        }
+        if (!supabase) return;
+        forgotBtn.disabled = true;
+        setAuthModalError('');
+        try {
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/login.html?tab=reset',
+          });
+          if (error) throw error;
+          setAuthModalError('✅ Te enviamos un enlace para restablecer tu contraseña a <b>' + email + '</b>. Revisa tu bandeja de entrada (o spam si no llega).', 'success');
+        } catch (err) {
+          setAuthModalError('❌ No se pudo enviar el enlace: ' + (err.message || err), 'error');
+        } finally {
+          forgotBtn.disabled = false;
+        }
+      });
+    }
     return;
   }
 

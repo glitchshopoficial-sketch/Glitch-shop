@@ -13,103 +13,174 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="auth-page">
-
   <div class="auth-page__wrap">
-    <div class="auth-page__left">
-      <a href="index.html" class="logo logo--lg" aria-label="Volver a inicio">
-        <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="logo__img" />
+
+    <!-- ============ COLUMNA IZQUIERDA: SPLASH ============ -->
+    <aside class="auth-page__left">
+      <a href="index.html" class="auth-page__brand" aria-label="Volver a inicio">
+        <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="auth-page__logo" />
+        <span class="auth-page__brand-name">
+          <b>Glitch</b>Shop
+          <em>Juegos, consolas y más</em>
+        </span>
       </a>
 
-      <h1 class="auth-page__title">Tu tienda gamer favorita</h1>
-      <p class="auth-page__sub">
-        Accede a tu cuenta para guardar tu carrito en la nube, disfrutar de descuentos exclusivos
-        y ver tu historial completo de pedidos.
-      </p>
+      <div class="auth-page__hero">
+        <span class="auth-page__eyebrow">
+          <span class="material-icons">bolt</span>
+          Bienvenido a la tienda gamer #1
+        </span>
 
-      <ul class="auth-page__bullets">
+        <h1 class="auth-page__title">
+          Tu pasión gamer,
+          <span class="auth-page__title-accent">un login de distancia.</span>
+        </h1>
+
+        <p class="auth-page__sub">
+          Entra para sincronizar tu carrito en la nube, recibir ofertas exclusivas
+          antes que nadie y acceder a tu historial completo de pedidos.
+        </p>
+      </div>
+
+      <ul class="auth-page__features">
         <li>
-          <span class="material-icons auth-page__bullet-icon">cloud_done</span>
+          <span class="auth-page__feat-icon" style="--c:#a78bfa">
+            <span class="material-icons">cloud_done</span>
+          </span>
           <div>
-            <strong>Carrito persistente</strong>
-            <span>Tus productos guardados se sincronizan en todos tus dispositivos.</span>
+            <strong>Carrito en la nube</strong>
+            <p>Guarda tu selección en cualquier dispositivo. No pierdes nada.</p>
           </div>
         </li>
         <li>
-          <span class="material-icons auth-page__bullet-icon">local_offer</span>
+          <span class="auth-page__feat-icon" style="--c:#f472b6">
+            <span class="material-icons">local_offer</span>
+          </span>
           <div>
-            <strong>Ofertas VIP</strong>
-            <span>Recibe descuentos exclusivos antes que cualquier otro cliente.</span>
+            <strong>Ofertas VIP registrados</strong>
+            <p>Descuentos especiales todos los sábados para miembros.</p>
           </div>
         </li>
         <li>
-          <span class="material-icons auth-page__bullet-icon">receipt_long</span>
+          <span class="auth-page__feat-icon" style="--c:#60a5fa">
+            <span class="material-icons">receipt_long</span>
+          </span>
           <div>
             <strong>Historial de pedidos</strong>
-            <span>Consulta en cualquier momento todo lo que has comprado con nosotros.</span>
+            <p>Consulta, reordena y sigue tus envíos desde un solo lugar.</p>
           </div>
         </li>
       </ul>
 
+      <div class="auth-page__trust">
+        <div>
+          <span class="material-icons" style="color:#22c55e;">verified</span>
+          <div>
+            <b>Checkout por WhatsApp</b>
+            <small>Pago directo con el dueño, sin sorpresas.</small>
+          </div>
+        </div>
+        <div>
+          <span class="material-icons" style="color:#60a5fa;">enhanced_encryption</span>
+          <div>
+            <b>Supabase Auth</b>
+            <small>Datos protegidos con encriptación AES-256.</small>
+          </div>
+        </div>
+      </div>
+
       <a href="index.html" class="auth-page__back">
-        <span class="material-icons">arrow_back</span> Volver a la tienda
+        <span class="material-icons">arrow_back</span>
+        Seguir explorando la tienda
       </a>
-    </div>
+    </aside>
 
-    <div class="auth-page__right">
-      <div class="auth-panel">
-        <div class="auth-panel__head">
-          <h3 id="authModalTitle">Iniciar sesión</h3>
-          <p id="authPanelSub">Ingresa tu correo y contraseña para entrar.</p>
-        </div>
+    <!-- ============ COLUMNA DERECHA: FORMULARIO ============ -->
+    <main class="auth-page__right">
+      <section class="auth-card" aria-label="Formulario de acceso">
 
-        <div class="auth-panel__tabs">
-          <button class="auth-tab auth-tab--active" data-tab="signin" id="tabSignIn">
-            <span class="material-icons">login</span> Iniciar sesión
+        <header class="auth-card__head">
+          <div>
+            <span class="auth-card__tag" id="authTag">Accede a tu cuenta</span>
+            <h2 class="auth-card__title" id="authModalTitle">Iniciar sesión</h2>
+            <p class="auth-card__sub" id="authPanelSub">Ingresa tu correo y contraseña para entrar a tu cuenta.</p>
+          </div>
+          <div class="auth-card__secure">
+            <span class="material-icons">lock</span>
+            <span>Conexión segura</span>
+          </div>
+        </header>
+
+        <nav class="auth-card__tabs" aria-label="Tipo de acceso">
+          <button type="button" class="auth-card__tab auth-card__tab--active" data-tab="signin" id="tabSignIn">
+            <span class="material-icons">login</span>
+            Iniciar sesión
           </button>
-          <button class="auth-tab" data-tab="signup" id="tabSignUp">
-            <span class="material-icons">person_add</span> Crear cuenta
+          <button type="button" class="auth-card__tab" data-tab="signup" id="tabSignUp">
+            <span class="material-icons">person_add</span>
+            Crear cuenta
           </button>
-        </div>
+        </nav>
 
-        <form id="authForm" autocomplete="on" novalidate>
+        <form id="authForm" class="auth-card__form" autocomplete="on" novalidate>
           <div id="authNameField" hidden>
-            <label class="field-label">Nombre completo</label>
-            <div class="field-wrap">
-              <span class="material-icons field-icon">badge</span>
-              <input type="text" id="authName" placeholder="Tu nombre completo" autocomplete="name" required />
+            <label for="authName" class="auth-card__label">Nombre completo</label>
+            <div class="auth-card__field">
+              <span class="material-icons auth-card__field-icon">badge</span>
+              <input id="authName" type="text" placeholder="Tu nombre y apellidos" autocomplete="name" required />
             </div>
           </div>
 
           <div>
-            <label class="field-label">Correo electrónico</label>
-            <div class="field-wrap">
-              <span class="material-icons field-icon">alternate_email</span>
-              <input type="email" id="authEmail" placeholder="tu@correo.com" autocomplete="email" required />
+            <label for="authEmail" class="auth-card__label">Correo electrónico</label>
+            <div class="auth-card__field">
+              <span class="material-icons auth-card__field-icon">alternate_email</span>
+              <input id="authEmail" type="email" placeholder="tu@correo.com" autocomplete="email" required />
             </div>
           </div>
 
-          <div style="margin-top:14px;">
-            <label class="field-label">Contraseña <span class="text-muted">(mínimo 6 caracteres)</span></label>
-            <div class="field-wrap">
-              <span class="material-icons field-icon">lock</span>
-              <input type="password" id="authPassword" placeholder="••••••••" minlength="6" autocomplete="current-password" required />
+          <div>
+            <div class="auth-card__label-row">
+              <label for="authPassword" class="auth-card__label">Contraseña</label>
+              <button type="button" class="auth-card__link" id="forgotBtn" hidden>
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+            <div class="auth-card__field">
+              <span class="material-icons auth-card__field-icon">lock</span>
+              <input id="authPassword" type="password" placeholder="••••••••" minlength="6" autocomplete="current-password" required />
+              <button type="button" class="auth-card__eye" id="togglePassword" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+                <span class="material-icons">visibility</span>
+              </button>
+            </div>
+            <div class="auth-card__label-hint">
+              <span class="material-icons">info</span>
+              Mínimo 6 caracteres. No compartas tu contraseña con nadie.
             </div>
           </div>
 
           <div class="auth-hint" id="authHint" hidden></div>
 
-          <button class="btn btn--primary w-full auth-submit-btn" id="authSubmitBtn">
+          <button type="submit" class="auth-card__submit" id="authSubmitBtn">
             <span class="material-icons" id="authSubmitIcon">arrow_forward</span>
             <span id="authSubmitText">Continuar</span>
+            <span class="auth-card__submit-loader" hidden>
+              <span class="material-icons auth-card__spin">progress_activity</span>
+            </span>
           </button>
 
-          <p class="auth-panel__legal">
-            Al continuar aceptas nuestros <a href="index.html">términos</a> y política de privacidad.
-            <br><small>Supabase protege tus datos con encriptación AES-256.</small>
+          <div class="auth-card__divider"><span>o continúa</span></div>
+
+          <p class="auth-card__legal">
+            Al continuar aceptas nuestros <a href="index.html">Términos</a>
+            · <a href="index.html">Política de Privacidad</a>.
+            Los correos de verificación los enviamos desde <b>glitchshopoficial@gmail.com</b>.
           </p>
         </form>
-      </div>
-    </div>
+
+      </section>
+    </main>
+
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
