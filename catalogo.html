@@ -14,6 +14,9 @@
   <!-- GOOGLE MATERIAL ICONS -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Round" rel="stylesheet">
 
+  <!-- SUPABASE JS CLIENT (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -36,9 +39,39 @@
         </form>
 
         <div class="header__actions">
-          <button class="icon-btn" aria-label="Mi cuenta">
-            <span class="material-icons-outlined">person_outline</span>
-          </button>
+          <div class="auth-wrap" id="authWrap">
+            <button class="icon-btn" id="authBtn" aria-label="Mi cuenta" title="Iniciar sesión">
+              <span class="material-icons-outlined" id="authIcon">person_outline</span>
+            </button>
+            <div class="auth-popover" id="authPopover" hidden>
+              <div id="authLoggedOut">
+                <p class="auth-popover__title">Accede a tu cuenta</p>
+                <p class="auth-popover__sub">Guarda tu carrito y pedidos en la nube</p>
+                <button class="btn btn--primary w-full" id="openAuthModalBtn">
+                  <span class="material-icons">login</span> Iniciar sesión / Registrarse
+                </button>
+              </div>
+              <div id="authLoggedIn" hidden>
+                <div class="auth-popover__user">
+                  <div class="auth-popover__avatar" id="userAvatar">U</div>
+                  <div>
+                    <div class="auth-popover__name" id="userName">Usuario</div>
+                    <div class="auth-popover__email" id="userEmail">correo@ejemplo.com</div>
+                    <span class="badge-admin" id="badgeAdmin" hidden>
+                      <span class="material-icons" style="font-size:12px;">verified_user</span> Super Admin
+                    </span>
+                  </div>
+                </div>
+                <hr style="margin:12px 0;border-color:var(--border);" />
+                <button class="btn btn--ghost w-full" id="openAdminBtn" hidden>
+                  <span class="material-icons">tune</span> Panel administrador
+                </button>
+                <button class="btn btn--ghost w-full" id="signOutBtn" style="margin-top:8px;">
+                  <span class="material-icons">logout</span> Cerrar sesión
+                </button>
+              </div>
+            </div>
+          </div>
           <button class="icon-btn cart-btn" id="cartBtn" aria-label="Carrito de compras">
             <span class="material-icons-outlined">shopping_bag_outlined</span>
             <span class="cart-count" id="cartCount">0</span>
@@ -303,8 +336,11 @@
           <span>Total</span>
           <span id="cartTotal">$0.00</span>
         </div>
-        <button class="btn btn--primary w-full" id="checkoutBtn">
-          <span class="material-icons">lock</span> Finalizar compra
+        <button class="btn btn--whatsapp w-full" id="whatsappCheckoutBtn" target="_blank" rel="noopener">
+          <span class="material-icons">whatsapp</span> Comprar vía WhatsApp
+        </button>
+        <button class="btn btn--ghost w-full" id="checkoutBtn" style="margin-top:8px;">
+          <span class="material-icons">lock</span> Finalizar compra (guardar pedido)
         </button>
         <p class="cart-drawer__secure">
           <span class="material-icons" style="font-size:14px;vertical-align:-3px;">verified_user</span>
@@ -313,6 +349,90 @@
       </footer>
     </div>
   </aside>
+
+  <!-- ===== AUTH MODAL ===== -->
+  <div class="auth-modal" id="authModal" aria-hidden="true" aria-label="Iniciar sesión o registrarse">
+    <div class="auth-modal__overlay" data-auth-close></div>
+    <div class="auth-modal__panel" role="dialog" aria-modal="true">
+      <header class="auth-modal__header">
+        <h3><span class="material-icons">lock_person</span> <span id="authModalTitle">Iniciar sesión</span></h3>
+        <button class="icon-btn" data-auth-close aria-label="Cerrar">
+          <span class="material-icons">close</span>
+        </button>
+      </header>
+      <div class="auth-modal__tabs">
+        <button class="auth-tab auth-tab--active" data-tab="signin" id="tabSignIn">
+          <span class="material-icons">login</span> Iniciar sesión
+        </button>
+        <button class="auth-tab" data-tab="signup" id="tabSignUp">
+          <span class="material-icons">person_add</span> Crear cuenta
+        </button>
+      </div>
+      <div class="auth-modal__body">
+        <form id="authForm" autocomplete="on">
+          <div id="authNameField" hidden>
+            <label class="field-label">Nombre completo</label>
+            <div class="field-wrap">
+              <span class="material-icons field-icon">badge</span>
+              <input type="text" id="authName" placeholder="Tu nombre" autocomplete="name" required />
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Correo electrónico</label>
+            <div class="field-wrap">
+              <span class="material-icons field-icon">alternate_email</span>
+              <input type="email" id="authEmail" placeholder="tu@correo.com" autocomplete="email" required />
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <label class="field-label">Contraseña <span class="text-muted">(mínimo 6 caracteres)</span></label>
+            <div class="field-wrap">
+              <span class="material-icons field-icon">lock</span>
+              <input type="password" id="authPassword" placeholder="••••••••" minlength="6" autocomplete="current-password" required />
+            </div>
+          </div>
+          <div class="auth-modal__hint" id="authHint" hidden></div>
+          <button class="btn btn--primary w-full" id="authSubmitBtn" style="margin-top:20px;">
+            <span class="material-icons" id="authSubmitIcon">arrow_forward</span>
+            <span id="authSubmitText">Continuar</span>
+          </button>
+          <p class="text-muted" style="margin-top:16px;font-size:12.5px;text-align:center;">
+            Al crear una cuenta aceptas nuestros términos y política de privacidad.
+            <br>Supabase Auth protege tus datos con encriptación AES-256.
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN PANEL ===== -->
+  <div class="admin-modal" id="adminModal" aria-hidden="true" aria-label="Panel administrador">
+    <div class="admin-modal__overlay" data-admin-close></div>
+    <div class="admin-modal__panel" role="dialog" aria-modal="true">
+      <header class="admin-modal__header">
+        <h3><span class="material-icons">tune</span> Panel Administrador</h3>
+        <button class="icon-btn" data-admin-close aria-label="Cerrar">
+          <span class="material-icons">close</span>
+        </button>
+      </header>
+      <div class="admin-modal__body">
+        <div class="admin-modal__toolbar">
+          <button class="btn btn--primary" id="adminAddBtn">
+            <span class="material-icons">add</span> Añadir producto
+          </button>
+          <button class="btn btn--ghost" id="adminRefreshBtn">
+            <span class="material-icons">refresh</span> Recargar
+          </button>
+        </div>
+        <div class="admin-list" id="adminList" aria-live="polite">
+          <div class="admin-empty">
+            <span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">cloud_sync</span>
+            Cargando inventario...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== TOAST ===== -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
