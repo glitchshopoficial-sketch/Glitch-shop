@@ -1,0 +1,31 @@
+# ============ GLITCH SHOP — NEVER COMMIT THESE FILES! ============
+# =========================================================
+# 🔐 SECRETOS - NUNCA SUBAS ESTO A GITHUB
+.env.local
+.env
+.env.production
+*.env
+
+# Node modules / cachés
+node_modules/
+.cache/
+.next/
+.nuxt/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output (si usas Vite después)
+dist/
+build/
+
+# IDE / local
+.vscode/
+.idea/
+*.swp
+*.swo
