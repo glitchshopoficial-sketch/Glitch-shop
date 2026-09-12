@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Panel Administrador — Glitch Shop</title>
-  <meta name="description" content="Panel de administración Glitch Shop. Gestiona productos, categorías, inventario y pedidos." />
+  <title>Panel Administrador - Glitch Shop</title>
+  <meta name="description" content="Panel de administración Glitch Shop. Gestiona productos, inventario y miembros." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Round" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="styles.css?v=cart-20260912-fix" />
+  <link rel="stylesheet" href="styles.css?v=admin-20260912" />
 </head>
 <body>
 
@@ -46,8 +46,8 @@
                   </div>
                 </div>
                 <dl class="auth-popover__details">
-                  <div><dt>Estado del correo</dt><dd id="profileVerified">—</dd></div>
-                  <div><dt>Miembro desde</dt><dd id="profileJoined">—</dd></div>
+                  <div><dt>Estado del correo</dt><dd id="profileVerified">-</dd></div>
+                  <div><dt>Miembro desde</dt><dd id="profileJoined">-</dd></div>
                 </dl>
                 <button class="btn btn--ghost w-full" id="signOutBtn">
                   <span class="material-icons">logout</span> Cerrar sesión
@@ -66,10 +66,10 @@
         <div class="catalog__header">
           <div>
             <h2 class="section-title">
-              <span class="material-icons" style="vertical-align:-4px;color:#f59e0b;">tune</span>
+              <span class="material-icons" style="vertical-align:-4px;color:#f59e0b;">admin_panel_settings</span>
               Panel Administrador
             </h2>
-            <p class="section-subtitle" id="adminSubtitle">Verificando credenciales de Super Usuario…</p>
+            <p class="section-subtitle" id="adminSubtitle">Verificando credenciales de Super Usuario...</p>
           </div>
           <div class="admin-modal__toolbar" style="gap:10px;">
             <button class="btn btn--primary" id="adminAddBtn" disabled>
@@ -82,7 +82,7 @@
         </div>
 
         <div id="adminNotAllowed" hidden style="padding:80px 0;text-align:center;">
-          <div style="font-size:84px;opacity:.3;margin-bottom:16px;">🔒</div>
+          <span class="material-icons" style="font-size:72px;opacity:.3;display:block;margin-bottom:16px;">lock</span>
           <h2 style="font-family:var(--font-display);color:var(--text);">Acceso restringido</h2>
           <p class="section-subtitle" style="max-width:520px;margin:8px auto 24px;">
             Esta área es solo para Super Administradores. Si eres el dueño, ejecuta el script SQL de promoción en el SQL Editor de Supabase y luego inicia sesión con tu cuenta.
@@ -93,18 +93,193 @@
         </div>
 
         <div id="adminContainer" hidden>
-          <div class="admin-list" id="adminList" aria-live="polite">
-            <div class="admin-empty">
-              <span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">cloud_sync</span>
-              Cargando inventario...
+
+          <!-- Pestañas -->
+          <div class="admin-tabs" role="tablist" aria-label="Secciones del panel">
+            <button type="button" class="admin-tab admin-tab--active" id="tabProductsBtn" role="tab" aria-selected="true">
+              <span class="material-icons" aria-hidden="true">inventory_2</span>
+              Productos <span class="admin-tab__count" id="adminProductCount">0</span>
+            </button>
+            <button type="button" class="admin-tab" id="tabMembersBtn" role="tab" aria-selected="false">
+              <span class="material-icons" aria-hidden="true">group</span>
+              Miembros
+            </button>
+          </div>
+
+          <!-- Panel de productos -->
+          <div class="admin-panel" id="productsPanel" role="tabpanel" aria-labelledby="tabProductsBtn">
+            <div class="admin-list" id="adminList" aria-live="polite">
+              <div class="admin-empty">
+                <span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">cloud_sync</span>
+                Cargando inventario...
+              </div>
             </div>
           </div>
+
+          <!-- Panel de miembros -->
+          <div class="admin-panel" id="membersPanel" role="tabpanel" aria-labelledby="tabMembersBtn" hidden>
+            <div class="admin-list" id="membersList" aria-live="polite">
+              <div class="admin-empty">
+                <span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">group</span>
+                Cargando miembros...
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
   </main>
 
+  <!-- ===== FORMULARIO DE PRODUCTO ===== -->
+  <div class="admin-modal" id="productFormModal" hidden>
+    <div class="admin-modal__overlay" data-close-form></div>
+    <div class="admin-modal__panel product-form-panel" role="dialog" aria-modal="true" aria-labelledby="productFormTitle">
+      <div class="admin-modal__header">
+        <h3 id="productFormTitle">
+          <span class="material-icons" aria-hidden="true">add_box</span> Añadir producto
+        </h3>
+        <button type="button" class="icon-btn" id="closeProductFormBtn" aria-label="Cerrar formulario">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </div>
+
+      <form id="productForm" class="admin-modal__body product-form" novalidate>
+        <input type="hidden" id="fId" value="" />
+
+        <div class="form-grid">
+          <div class="form-field form-field--full">
+            <label class="field-label" for="fTitle">Título del producto *</label>
+            <div class="field-wrap">
+              <span class="field-icon material-icons" aria-hidden="true">sell</span>
+              <input type="text" id="fTitle" name="title" placeholder="Ej. God of War Ragnarok" required maxlength="120" />
+            </div>
+          </div>
+
+          <div class="form-field form-field--full">
+            <label class="field-label" for="fDescription">Descripción</label>
+            <textarea id="fDescription" name="description" rows="3" maxlength="500" placeholder="Describe el producto, estado, incluye accesorios, etc."></textarea>
+          </div>
+
+          <div class="form-field form-field--full">
+            <label class="field-label">Imagen del producto</label>
+            <div class="upload-box" id="uploadBox" tabindex="0" role="button" aria-label="Subir imagen del producto">
+              <img id="fImagePreview" alt="Vista previa de la imagen" hidden />
+              <div class="upload-box__empty" id="uploadBoxEmpty">
+                <span class="material-icons" aria-hidden="true">add_photo_alternate</span>
+                <span class="upload-box__text" id="fImageName">Haz clic para subir una imagen (JPG, PNG o WebP)</span>
+              </div>
+              <input type="file" id="fImage" name="image" accept="image/jpeg,image/png,image/webp" hidden />
+            </div>
+            <button type="button" class="btn btn--ghost upload-box__remove" id="fImageRemove" hidden>
+              <span class="material-icons" aria-hidden="true">delete</span> Quitar imagen
+            </button>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fEmoji">Emoji (respaldo visual)</label>
+            <div class="field-wrap">
+              <span class="field-icon material-icons" aria-hidden="true">emoji_emotions</span>
+              <input type="text" id="fEmoji" name="emoji" placeholder="Opcional" maxlength="8" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fCategory">Categoría *</label>
+            <select id="fCategory" name="category_id" required>
+              <option value="2" selected>Juegos</option>
+              <option value="1">Consolas</option>
+              <option value="3">Accesorios</option>
+              <option value="4">Merchandising</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fPlatform">Plataforma *</label>
+            <select id="fPlatform" name="platform_id" required>
+              <option value="4" selected>PC</option>
+              <option value="1">PlayStation</option>
+              <option value="2">Xbox</option>
+              <option value="3">Nintendo</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fPlatformLabel">Etiqueta de plataforma</label>
+            <div class="field-wrap">
+              <span class="field-icon material-icons" aria-hidden="true">label</span>
+              <input type="text" id="fPlatformLabel" name="platform_label" placeholder="Ej. PS5 PRO" maxlength="40" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fPrice">Precio (MXN) *</label>
+            <div class="field-wrap">
+              <span class="field-icon material-icons" aria-hidden="true">payments</span>
+              <input type="number" id="fPrice" name="price" placeholder="0" min="0" step="0.01" required inputmode="decimal" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fOldPrice">Precio anterior (opcional)</label>
+            <div class="field-wrap">
+              <span class="field-icon material-icons" aria-hidden="true">trending_down</span>
+              <input type="number" id="fOldPrice" name="old_price" placeholder="0" min="0" step="0.01" inputmode="decimal" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fStock">Estado de publicación *</label>
+            <select id="fStock" name="stock" required>
+              <option value="available" selected>Publicado (en stock)</option>
+              <option value="low">Publicado (últimas unidades)</option>
+              <option value="soldout">No publicado (oculto de la tienda)</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fSku">SKU / clave interna</label>
+            <div class="field-wrap">
+              <span class="field-icon material-icons" aria-hidden="true">qr_code_2</span>
+              <input type="text" id="fSku" name="sku" placeholder="Ej. PS5-001" maxlength="40" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="fWeight">Peso (kg)</label>
+            <div class="field-wrap">
+              <span class="field-icon material-icons" aria-hidden="true">scale</span>
+              <input type="number" id="fWeight" name="weight_kg" placeholder="0" min="0" step="0.01" inputmode="decimal" />
+            </div>
+          </div>
+
+          <div class="form-field form-field--check">
+            <label class="check-row">
+              <input type="checkbox" id="fOffer" name="is_offer" />
+              <span class="material-icons" aria-hidden="true">local_offer</span> Marcar como oferta
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="fNew" name="is_new" />
+              <span class="material-icons" aria-hidden="true">fiber_new</span> Marcar como novedad
+            </label>
+          </div>
+        </div>
+
+        <p class="product-form__error" id="productFormError" role="alert" hidden></p>
+
+        <div class="product-form__footer">
+          <button type="button" class="btn btn--ghost" id="productFormCancel">
+            <span class="material-icons" aria-hidden="true">close</span> Cancelar
+          </button>
+          <button type="submit" class="btn btn--primary" id="productFormSubmit">
+            <span class="material-icons" aria-hidden="true">save</span> Guardar producto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="script.js?v=cart-20260912"></script>
+  <script type="module" src="script.js?v=admin-20260912"></script>
 </body>
 </html>

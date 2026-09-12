@@ -619,10 +619,13 @@ function productCard(p) {
         ${p.offer ? `<span class="product__badge product__badge--offer">-${discount}%</span>` : ''}
         ${p.stock === 'low' ? `<span class="product__badge product__badge--low" style="top:auto; bottom:12px;">Últimas</span>` : ''}
         <span class="product__platform ${platformClass(p.platform)}">${p.platformLabel}</span>
-        <div class="product__emoji">${p.emoji}</div>
+        ${p.image_url
+          ? `<img class="product__img" src="${p.image_url}" alt="${p.title}" loading="lazy" />`
+          : `<div class="product__emoji">${p.emoji}</div>`}
       </div>
       <div class="product__body">
         <h3 class="product__title">${p.title}</h3>
+        ${p.description ? `<p class="product__desc">${p.description}</p>` : ''}
         <div class="product__price-row">
           <span class="product__price">${formatPrice(p.price)}</span>
           ${p.oldPrice ? `<span class="product__price--old">${formatPrice(p.oldPrice)}</span>` : ''}
@@ -1060,69 +1063,405 @@ function toggleAdminModal(forceShow) {
   }
 }
 
+let adminRows = [];
+
 async function renderAdminList() {
   const listEl = $('#adminList');
   if (!listEl) return;
+  const countEl = $('#adminProductCount');
   listEl.innerHTML = '<div class="admin-empty"><span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">cloud_sync</span>Cargando...</div>';
+
   let list = [];
-  /* Intenta traer de la tabla products de Supabase; si falla, usa el array hardcodeado */
+  adminRows = [];
   if (supabase && state.user?.isAdmin) {
     try {
-      const { data, error } = await supabase.from('products').select('id,title,category_id,platform_id,price,old_price,stock,is_offer,is_new,platform_label,emoji').order('id', { ascending: true });
-      if (!error && data && data.length) list = data.map(row => mapDBProduct(row));
-    } catch (e) { list = []; }
+      const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
+      if (error) throw error;
+      adminRows = data || [];
+      list = adminRows.map(row => mapDBProduct(row));
+    } catch (e) {
+      console.warn('[Admin] load products failed:', e.message);
+      list = [];
+      adminRows = [];
+    }
   }
-  if (!list.length) list = PRODUCTS; /* Fallback */
+  if (!list.length) list = PRODUCTS; /* Fallback si la DB no responde */
 
-  listEl.innerHTML = list.map(p => `
+  if (countEl) countEl.textContent = String(list.length);
+
+  if (!list.length) {
+    listEl.innerHTML = '<div class="admin-empty"><span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">inventory_2</span>No hay productos todavía. Usa "Añadir producto".</div>';
+    return;
+  }
+
+  listEl.innerHTML = list.map(p => {
+    const published = p.stock !== 'soldout';
+    const thumb = p.image_url
+      ? `<img class="admin-item__thumb" src="${p.image_url}" alt="" loading="lazy" />`
+      : `<div class="admin-item__emoji">${p.emoji || '🎮'}</div>`;
+    return `
     <div class="admin-item" data-id="${p.id}">
-      <div class="admin-item__emoji">${p.emoji || '📦'}</div>
-      <div>
+      ${thumb}
+      <div class="admin-item__info">
         <div class="admin-item__title">${p.title}</div>
+        ${p.description ? `<div class="admin-item__desc">${p.description}</div>` : ''}
         <div class="admin-item__meta">
           <span><span class="material-icons" style="font-size:14px;">category</span> ${p.category || 'N/A'}</span>
           <span><span class="material-icons" style="font-size:14px;">devices</span> ${p.platformLabel || '-'}</span>
-          <span><span class="material-icons" style="font-size:14px;">inventory_2</span> ${p.stock}</span>
           <span class="admin-item__price">${formatPrice(p.price)}</span>
-          ${p.offer ? '<span style="color:#ec4899;">🏷️ Oferta</span>' : ''}
-          ${p.isNew ? '<span style="color:#5b5cff;">✨ Nuevo</span>' : ''}
+          <span class="badge ${published ? 'badge--published' : 'badge--hidden'}">${published ? 'Publicado' : 'Oculto'}</span>
         </div>
       </div>
       <div class="admin-item__actions">
-        <button class="icon-btn" title="Editar producto" data-admin-edit="${p.id}">
-          <span class="material-icons">edit</span>
-        </button>
-        <button class="icon-btn" title="Eliminar producto" data-admin-del="${p.id}">
-          <span class="material-icons" style="color:#ef4444;">delete</span>
-        </button>
+        <button class="icon-btn" title="Editar producto" data-admin-edit="${p.id}"><span class="material-icons">edit</span></button>
+        <button class="icon-btn" title="Eliminar producto" data-admin-del="${p.id}"><span class="material-icons" style="color:#ef4444;">delete</span></button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
-  /* Bind eventos admin (toast provisional) */
   $$('[data-admin-edit]').forEach(b => b.addEventListener('click', () => {
-    showToast('Editor avanzado próximamente. Por ahora edita desde el SQL Editor de Supabase ⚙️', 'warn');
+    const id = +b.dataset.adminEdit;
+    const row = adminRows.find(r => r.id === id);
+    openProductForm(row || PRODUCTS.find(p => p.id === id));
   }));
-  $$('[data-admin-del]').forEach(b => b.addEventListener('click', () => {
-    showToast('Funcionalidad eliminar próximo release.', 'warn');
-  }));
+  $$('[data-admin-del]').forEach(b => b.addEventListener('click', () => deleteProduct(+b.dataset.adminDel)));
 }
 
-function mapDBProduct(row) {
-  const catsMap = { 1: 'consolas', 2: 'juegos', 3: 'accesorios', 4: 'merch' };
+function mapDBProduct(row, catMap, platMap) {
+  const cats = catMap || { 1: 'consolas', 2: 'juegos', 3: 'accesorios', 4: 'merch' };
+  const plats = platMap || { 1: 'playstation', 2: 'xbox', 3: 'nintendo', 4: 'pc' };
   return {
     id: row.id,
     title: row.title,
-    category: catsMap[row.category_id] || 'juegos',
-    platform: 'pc',
-    emoji: row.emoji || '📦',
+    category: cats[row.category_id] || 'juegos',
+    platform: plats[row.platform_id] || 'pc',
+    emoji: row.emoji || '🎮',
+    image_url: row.image_url || null,
+    description: row.description || null,
+    sku: row.sku || null,
+    weight_kg: row.weight_kg != null ? +row.weight_kg : null,
     price: +row.price,
-    oldPrice: row.old_price ? +row.old_price : null,
+    oldPrice: row.old_price != null ? +row.old_price : null,
     stock: row.stock || 'available',
     offer: !!row.is_offer,
     isNew: !!row.is_new,
     platformLabel: row.platform_label || 'PC',
   };
+}
+
+/* Carga el catálogo de la tienda desde Supabase (products + featured).
+   Reemplaza el array local PRODUCTS cuando la DB responde, para que los
+   productos publicados desde el panel aparezcan en index/catalogo. */
+async function loadProductsFromDB() {
+  if (!supabase) return;
+  try {
+    const [catRes, platRes, prodRes, featRes] = await Promise.all([
+      supabase.from('categories').select('id,slug'),
+      supabase.from('platforms').select('id,slug'),
+      supabase.from('products').select('*').order('id', { ascending: true }),
+      supabase.from('featured_products').select('product_id').order('sort_order', { ascending: true }),
+    ]);
+    if (prodRes.error || !prodRes.data || !prodRes.data.length) return; /* mantiene catálogo local */
+
+    const catMap = {}; (catRes.data || []).forEach(c => { catMap[c.id] = c.slug; });
+    const platMap = {}; (platRes.data || []).forEach(p => { platMap[p.id] = p.slug; });
+
+    const mapped = prodRes.data.map(r => mapDBProduct(r, catMap, platMap));
+    PRODUCTS.length = 0;
+    mapped.forEach(p => PRODUCTS.push(p));
+
+    const featIds = (featRes.data || []).map(f => f.product_id);
+    if (featIds.length) {
+      FEATURED_IDS.length = 0;
+      featIds.forEach(id => FEATURED_IDS.push(id));
+    }
+
+    if ($('#featuredGrid')) renderFeatured();
+    if ($('#productsGrid')) renderProducts();
+  } catch (e) {
+    console.warn('[Catalog] loadProductsFromDB failed:', e.message);
+  }
+}
+
+/* -----------------------------------------------------------
+   10b. ADMIN PANEL — Formulario de producto + Miembros
+   ----------------------------------------------------------- */
+const CATEGORY_SLUG_TO_ID = { consolas: 1, juegos: 2, accesorios: 3, merch: 4 };
+const PLATFORM_SLUG_TO_ID = { playstation: 1, xbox: 2, nintendo: 3, pc: 4 };
+let selectedImageFile = null;
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function fmtDate(value) {
+  if (!value) return 'nunca';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return 'nunca';
+  return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function setVal(selector, value) {
+  const el = $(selector);
+  if (!el) return;
+  if (el.type === 'checkbox') el.checked = !!value;
+  else el.value = value == null ? '' : value;
+}
+
+function setFormError(msg) {
+  const el = $('#productFormError');
+  if (!el) return;
+  if (msg) { el.textContent = msg; el.hidden = false; }
+  else { el.textContent = ''; el.hidden = true; }
+}
+
+function showImagePreview(url) {
+  const img = $('#fImagePreview');
+  const empty = $('#uploadBoxEmpty');
+  const name = $('#fImageName');
+  const remove = $('#fImageRemove');
+  if (img) { img.src = url; img.hidden = false; }
+  if (empty) empty.hidden = true;
+  if (name) name.textContent = 'Imagen lista (se subirá al guardar)';
+  if (remove) remove.hidden = false;
+}
+
+function clearImagePreview() {
+  selectedImageFile = null;
+  const img = $('#fImagePreview');
+  const empty = $('#uploadBoxEmpty');
+  const name = $('#fImageName');
+  const remove = $('#fImageRemove');
+  const fileInput = $('#fImage');
+  if (img) { img.src = ''; img.hidden = true; }
+  if (empty) empty.hidden = false;
+  if (name) name.textContent = 'Haz clic para subir una imagen (JPG, PNG o WebP)';
+  if (remove) remove.hidden = true;
+  if (fileInput) fileInput.value = '';
+}
+
+function handleImageSelect(file) {
+  if (!file) return;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    setFormError('Formato no soportado. Usa JPG, PNG o WebP.');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    setFormError('La imagen no debe superar 5 MB.');
+    return;
+  }
+  selectedImageFile = file;
+  setFormError('');
+  showImagePreview(URL.createObjectURL(file));
+}
+
+function openProductForm(product) {
+  const modal = $('#productFormModal');
+  if (!modal) return;
+  setFormError('');
+  const isEdit = !!product;
+  const titleEl = $('#productFormTitle');
+  const submitBtn = $('#productFormSubmit');
+  if (titleEl) titleEl.innerHTML = isEdit
+    ? '<span class="material-icons" aria-hidden="true">edit</span> Editar producto'
+    : '<span class="material-icons" aria-hidden="true">add_box</span> Añadir producto';
+
+  $('#productForm')?.reset();
+  clearImagePreview();
+  setVal('#fId', '');
+  setVal('#fCategory', '2');
+  setVal('#fPlatform', '4');
+  setVal('#fStock', 'available');
+  setVal('#fOffer', false);
+  setVal('#fNew', false);
+
+  if (product) {
+    setVal('#fId', String(product.id));
+    setVal('#fTitle', product.title || '');
+    setVal('#fDescription', product.description || '');
+    setVal('#fEmoji', product.emoji || '');
+    setVal('#fCategory', String(product.category_id != null ? product.category_id : (CATEGORY_SLUG_TO_ID[product.category] || 2)));
+    setVal('#fPlatform', String(product.platform_id != null ? product.platform_id : (PLATFORM_SLUG_TO_ID[product.platform] || 4)));
+    setVal('#fPlatformLabel', product.platformLabel || '');
+    setVal('#fPrice', product.price != null ? String(product.price) : '');
+    setVal('#fOldPrice', product.oldPrice != null ? String(product.oldPrice) : '');
+    setVal('#fStock', product.stock || 'available');
+    setVal('#fSku', product.sku || '');
+    setVal('#fWeight', product.weight_kg != null ? String(product.weight_kg) : '');
+    setVal('#fOffer', !!product.offer);
+    setVal('#fNew', !!product.isNew);
+    if (product.image_url) showImagePreview(product.image_url);
+  }
+
+  if (submitBtn) submitBtn.disabled = false;
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('#fTitle')?.focus(), 50);
+}
+
+function closeProductForm() {
+  const modal = $('#productFormModal');
+  if (modal) modal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+async function uploadProductImage(file) {
+  if (!supabase || !file) return null;
+  const rawExt = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const ext = ['jpg', 'jpeg', 'png', 'webp'].includes(rawExt) ? rawExt : 'jpg';
+  const path = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+  const { error } = await supabase.storage.from('product-images').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from('product-images').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function handleProductSubmit(e) {
+  e.preventDefault();
+  setFormError('');
+  if (!supabase || !state.user?.isAdmin) {
+    setFormError('No tienes permisos de administrador.');
+    return;
+  }
+  const id = ($('#fId')?.value || '').trim();
+  const title = ($('#fTitle')?.value || '').trim();
+  const price = parseFloat($('#fPrice')?.value || '0');
+  if (!title) { setFormError('El título es obligatorio.'); $('#fTitle')?.focus(); return; }
+  if (!Number.isFinite(price) || price < 0) { setFormError('El precio debe ser un número válido.'); $('#fPrice')?.focus(); return; }
+
+  const submitBtn = $('#productFormSubmit');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<span class="material-icons" aria-hidden="true">hourglass_top</span> Guardando...'; }
+
+  try {
+    let imageUrl = ($('#fImagePreview')?.src && !selectedImageFile) ? $('#fImagePreview').src : null;
+    if (imageUrl && imageUrl.startsWith('blob:')) imageUrl = null;
+    if (selectedImageFile) imageUrl = await uploadProductImage(selectedImageFile);
+
+    const payload = {
+      title,
+      description: ($('#fDescription')?.value || '').trim() || null,
+      emoji: ($('#fEmoji')?.value || '').trim() || null,
+      category_id: +($('#fCategory')?.value || 2),
+      platform_id: +($('#fPlatform')?.value || 4),
+      platform_label: ($('#fPlatformLabel')?.value || '').trim() || null,
+      price,
+      old_price: (($('#fOldPrice')?.value && parseFloat($('#fOldPrice').value) > 0) ? parseFloat($('#fOldPrice').value) : null),
+      stock: $('#fStock')?.value || 'available',
+      is_offer: !!$('#fOffer')?.checked,
+      is_new: !!$('#fNew')?.checked,
+      sku: ($('#fSku')?.value || '').trim() || null,
+      weight_kg: (($('#fWeight')?.value && parseFloat($('#fWeight').value) > 0) ? parseFloat($('#fWeight').value) : null),
+      image_url: imageUrl,
+    };
+
+    if (id) {
+      const { error } = await supabase.from('products').update(payload).eq('id', id);
+      if (error) throw error;
+      showToast('Producto actualizado.', 'success');
+    } else {
+      const { error } = await supabase.from('products').insert(payload);
+      if (error) throw error;
+      showToast('Producto creado.', 'success');
+    }
+
+    closeProductForm();
+    await renderAdminList();
+    loadProductsFromDB();
+  } catch (err) {
+    console.error('[Admin] save product failed:', err);
+    setFormError('No se pudo guardar: ' + (err.message || err));
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<span class="material-icons" aria-hidden="true">save</span> Guardar producto'; }
+  }
+}
+
+async function deleteProduct(id) {
+  if (!supabase || !state.user?.isAdmin) return;
+  const row = adminRows.find(r => r.id === id);
+  const p = row ? mapDBProduct(row) : PRODUCTS.find(x => x.id === id);
+  const name = p ? p.title : ('#' + id);
+  if (!confirm('¿Eliminar el producto "' + name + '" de forma permanente? Esta acción no se puede deshacer.')) return;
+  try {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) throw error;
+    showToast('Producto eliminado.', 'success');
+    await renderAdminList();
+    loadProductsFromDB();
+  } catch (err) {
+    console.error('[Admin] delete product failed:', err);
+    showToast('No se pudo eliminar: ' + (err.message || err), 'error');
+  }
+}
+
+function switchAdminTab(tab) {
+  const productsPanel = $('#productsPanel');
+  const membersPanel = $('#membersPanel');
+  const tabProducts = $('#tabProductsBtn');
+  const tabMembers = $('#tabMembersBtn');
+  if (!productsPanel || !membersPanel) return;
+  const isProducts = tab === 'products';
+  productsPanel.hidden = !isProducts;
+  membersPanel.hidden = isProducts;
+  if (tabProducts) { tabProducts.classList.toggle('admin-tab--active', isProducts); tabProducts.setAttribute('aria-selected', String(isProducts)); }
+  if (tabMembers) { tabMembers.classList.toggle('admin-tab--active', !isProducts); tabMembers.setAttribute('aria-selected', String(!isProducts)); }
+  if (isProducts) renderAdminList();
+  else renderMembers();
+}
+
+function renderMembers() {
+  const el = $('#membersList');
+  if (!el) return;
+  if (!supabase || !state.user?.isAdmin) {
+    el.innerHTML = '<div class="admin-empty"><span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">lock</span>No tienes permisos para ver miembros.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="admin-empty"><span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">cloud_sync</span>Cargando miembros...</div>';
+
+  supabase.rpc('get_members').then(({ data, error }) => {
+    if (error) {
+      el.innerHTML = `
+        <div class="admin-empty">
+          <span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">build</span>
+          <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Falta configurar la base de datos</div>
+          <p style="max-width:480px;margin:0 auto 12px;font-size:13px;">Ejecuta el archivo <code>supabase/migrations/003_members_and_storage.sql</code> en el SQL Editor de Supabase para poder listar los miembros.</p>
+          <p style="font-size:12px;color:var(--text-muted);">Detalle: ${error.message || error}</p>
+        </div>`;
+      return;
+    }
+    const members = data || [];
+    if (!members.length) {
+      el.innerHTML = '<div class="admin-empty"><span class="material-icons" style="font-size:36px;opacity:.4;display:block;margin-bottom:8px;">group_off</span>Aún no hay miembros registrados.</div>';
+      return;
+    }
+    el.innerHTML = members.map(m => {
+      const initials = escapeHtml((m.name || m.email || '?').trim().slice(0, 2).toUpperCase());
+      const isAdmin = m.role === 'super_admin';
+      return `
+        <div class="member-item">
+          <div class="member-item__avatar" aria-hidden="true">${initials}</div>
+          <div class="member-item__info">
+            <div class="member-item__name">${escapeHtml(m.name || 'Sin nombre')} ${isAdmin ? '<span class="badge badge--admin-role">Super Admin</span>' : ''}</div>
+            <div class="member-item__email">${escapeHtml(m.email || '-')}</div>
+          </div>
+          <div class="member-item__meta">
+            <span>Miembro desde ${fmtDate(m.created_at)}</span>
+            <span>Último acceso ${fmtDate(m.last_sign_in_at)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }).catch(err => {
+    console.error('[Admin] get_members failed:', err);
+    el.innerHTML = '<div class="admin-empty">No se pudieron cargar los miembros. Revisa la consola.</div>';
+  });
 }
 
 /* -----------------------------------------------------------
@@ -1229,7 +1568,32 @@ function bindAuthUi() {
   const adminRefresh = $('#adminRefreshBtn');
   if (adminRefresh) adminRefresh.addEventListener('click', renderAdminList);
   const adminAdd = $('#adminAddBtn');
-  if (adminAdd) adminAdd.addEventListener('click', () => showToast('Añadir producto: próximo release. Usa Supabase SQL Editor por ahora ⚙️', 'warn'));
+  if (adminAdd) adminAdd.addEventListener('click', () => openProductForm());
+
+  /* Pestañas del panel admin */
+  $('#tabProductsBtn')?.addEventListener('click', () => switchAdminTab('products'));
+  $('#tabMembersBtn')?.addEventListener('click', () => switchAdminTab('members'));
+
+  /* Formulario de producto (solo admin.html) */
+  const productForm = $('#productForm');
+  if (productForm) productForm.addEventListener('submit', handleProductSubmit);
+  $('#closeProductFormBtn')?.addEventListener('click', closeProductForm);
+  $('#productFormCancel')?.addEventListener('click', closeProductForm);
+  $$('[data-close-form]').forEach(el => el.addEventListener('click', closeProductForm));
+  const imageInput = $('#fImage');
+  if (imageInput) imageInput.addEventListener('change', () => handleImageSelect(imageInput.files && imageInput.files[0]));
+  const uploadBox = $('#uploadBox');
+  if (uploadBox && imageInput) {
+    uploadBox.addEventListener('click', () => imageInput.click());
+    uploadBox.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); imageInput.click(); }
+    });
+  }
+  $('#fImageRemove')?.addEventListener('click', clearImagePreview);
+  document.addEventListener('keydown', e => {
+    const modal = $('#productFormModal');
+    if (e.key === 'Escape' && modal && !modal.hidden) closeProductForm();
+  });
 
   if (PAGE === 'admin') return;
 
@@ -1312,6 +1676,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderProducts();
       bindFilters();
     }
+    /* Cargar catálogo real desde Supabase (products + featured). */
+    if (supabase) loadProductsFromDB();
   } else if (PAGE === 'admin') {
     /* Admin page necesita renderCart? No estrictamente, pero si lo queremos para el header no hace falta.
        Pasamos. El renderAuthUI() ya se encargó de mostrar admin o bloqueado. */
