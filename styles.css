@@ -237,25 +237,46 @@ ul { list-style: none; }
 .search__btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
 /* HEADER ACTIONS */
-.header__actions { display: flex; align-items: center; gap: 8px; }
+.header__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .icon-btn {
   width: 40px;
   height: 40px;
   border-radius: var(--r-sm);
   background: var(--bg-card);
   border: 1px solid var(--border-strong);
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-soft);
   position: relative;
   transition: all 0.18s;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  vertical-align: middle;
+  text-decoration: none;
 }
 .icon-btn .material-icons,
-.icon-btn .material-icons-outlined { font-size: 20px; }
+.icon-btn .material-icons-outlined {
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
 .icon-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-soft);
+}
+.cart-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .cart-btn .cart-count {
   position: absolute;
@@ -271,8 +292,13 @@ ul { list-style: none; }
   border-radius: var(--r-xs);
   display: none;
   place-items: center;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   border: 2px solid var(--bg);
   font-family: var(--font-mono);
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* HAMBURGER */
@@ -288,6 +314,9 @@ ul { list-style: none; }
   justify-content: center;
   gap: 4px;
   transition: all 0.18s;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
 }
 .hamburger:hover { border-color: var(--accent); }
 .hamburger span {
@@ -1657,8 +1686,9 @@ ul { list-style: none; }
 }
 
 @media (max-width: 380px) {
+  .container { padding: 0 14px; }
+  .header__actions { gap: 6px; }
   .products__grid { grid-template-columns: 1fr; }
-  .header__actions .icon-btn:nth-child(1) { display: none; }
   .logo__img { height: 36px; }
 }
 
@@ -1696,7 +1726,13 @@ ul { list-style: none; }
 /* =========================================================
    AUTH UI (popover + modal)
    ========================================================= */
-.auth-wrap { position: relative; display: inline-grid; }
+.auth-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 .auth-popover {
   position: absolute;
   top: calc(100% + 10px);
