@@ -32,8 +32,8 @@ const OWNER_WHATSAPP_NAME = (window.VITE_OWNER_WHATSAPP_NAME
    -------------------------- */
 const PAGE = (() => {
   const f = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
-  if (f === 'login.html') return 'login';
-  if (f === 'admin.html') return 'admin';
+  if (f === 'login.html' || f === 'login') return 'login';
+  if (f === 'admin.html' || f === 'admin') return 'admin';
   return 'store';   /* index.html, catalogo.html */
 })();
 
@@ -331,7 +331,12 @@ function toggleAuthModal(forceShow) {
 
 function switchAuthTab(tabKey) {
   state.authTab = tabKey;
-  $$('.auth-card__tab, .auth-tab').forEach(t => {
+  $$('.auth-card__tab, .auth-tab, .glauth__tab').forEach(t => {
+    t.classList.toggle('glauth__tab--active', t.dataset.tab === tabKey);
+    if (t.getAttribute('role') === 'tab') {
+      t.setAttribute('aria-selected', String(t.dataset.tab === tabKey));
+      t.tabIndex = t.dataset.tab === tabKey ? 0 : -1;
+    }
     t.classList.toggle('auth-card__tab--active', t.dataset.tab === tabKey);
     t.classList.toggle('auth-tab--active', t.dataset.tab === tabKey);
   });
@@ -351,9 +356,17 @@ function switchAuthTab(tabKey) {
   const sub = document.getElementById('authPanelSub');
   if (sub) sub.textContent = signIn
     ? 'Ingresa tu correo y contraseña para entrar a tu cuenta.'
-    : 'Crea tu cuenta en 30 segundos. Solo necesitas tu correo y una contraseña.';
+    : 'Guarda tu carrito y lleva tus juegos contigo.';
   const nameField = $('#authNameField');
   if (nameField) nameField.hidden = signIn;
+  const nameInput = $('#authName');
+  if (nameInput) nameInput.required = !signIn;
+  const passwordInput = $('#authPassword');
+  if (passwordInput) passwordInput.autocomplete = signIn ? 'current-password' : 'new-password';
+  const passwordHint = $('#authPasswordHint');
+  if (passwordHint) passwordHint.hidden = signIn;
+  const form = $('#authForm');
+  if (form && form.getAttribute('role') === 'tabpanel') form.setAttribute('aria-labelledby', signIn ? 'tabSignIn' : 'tabSignUp');
   /* Olvidaste tu contraseña solo visible en tab signin */
   const forgotBtn = document.getElementById('forgotBtn');
   if (forgotBtn) forgotBtn.hidden = !signIn;
@@ -393,7 +406,7 @@ async function handleAuthSubmit(e) {
   const password = ($('#authPassword').value || '');
   if (!email || !password) return;
   const btn = $('#authSubmitBtn');
-  const loader = document.querySelector('.auth-card__submit-loader');
+  const loader = document.querySelector('.auth-card__submit-loader, .glauth__submit-loader');
   const iconSubmit = document.getElementById('authSubmitIcon');
   const textSubmit = document.getElementById('authSubmitText');
   if (btn) btn.disabled = true;
@@ -1068,8 +1081,15 @@ function bindAuthUi() {
       state.authTab = 'signup';
     }
     switchAuthTab(state.authTab);
-    $$('.auth-card__tab, .auth-tab').forEach(t => {
+    $$('.auth-card__tab, .auth-tab, .glauth__tab').forEach(t => {
       t.addEventListener('click', () => switchAuthTab(t.dataset.tab));
+      if (t.getAttribute('role') === 'tab') t.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const next = event.key === 'Home' ? 'signin' : event.key === 'End' ? 'signup' : state.authTab === 'signin' ? 'signup' : 'signin';
+        switchAuthTab(next);
+        document.getElementById(next === 'signin' ? 'tabSignIn' : 'tabSignUp').focus();
+      });
     });
     const authForm = $('#authForm');
     if (authForm) authForm.addEventListener('submit', handleAuthSubmit);
