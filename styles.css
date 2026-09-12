@@ -1960,3 +1960,21 @@ ul { list-style: none; }
 @media (prefers-reduced-motion: reduce) {
   .glauth *, .glauth *::before, .glauth *::after { animation: none !important; transition: none !important; }
 }
+
+/* Account panel shared by the store and catalog. */
+.auth-popover { width: min(350px, calc(100vw - 32px)); padding: 22px; }
+.auth-popover__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.auth-popover__heading h2 { font-size: 22px; }
+.auth-popover__heading .icon-btn { width: 36px; height: 36px; }
+.auth-popover__user > div:last-child { min-width: 0; }
+.auth-popover__name { font-size: 16px; overflow-wrap: anywhere; }
+.auth-popover__email { font-size: 14px; color: var(--text-soft); }
+.auth-popover__details { display: grid; gap: 14px; margin: 22px 0; padding: 18px 0; border-block: 1px solid var(--border); font-size: 14px; }
+.auth-popover__details dt { color: var(--text-muted); margin-bottom: 3px; }
+.auth-popover__details dd { margin: 0; color: var(--text-soft); }
+.auth-popover [hidden] { display: none !important; }
+.auth-popover #signOutBtn { justify-content: center; min-height: 44px; color: #fca5a5; border: 1px solid #ef444430; background: #ef44440a; }
+.auth-popover button:focus-visible, #authBtn:focus-visible { outline: 2px solid #aaaaff; outline-offset: 3px; }
+@media (max-width: 640px) {
+  .auth-popover { position: fixed; top: 88px; right: 16px; max-height: calc(100dvh - 104px); overflow-y: auto; }
+}

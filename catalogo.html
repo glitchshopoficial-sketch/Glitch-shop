@@ -17,7 +17,7 @@
   <!-- SUPABASE JS CLIENT (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=profile-20260912-2" />
 </head>
 <body>
 
@@ -40,10 +40,14 @@
 
         <div class="header__actions">
           <div class="auth-wrap" id="authWrap">
-            <a href="login.html" class="icon-btn" id="authBtn" target="_blank" rel="noopener" aria-label="Iniciar sesión" title="Iniciar sesión o crear cuenta">
+            <a href="login.html" class="icon-btn" id="authBtn" aria-controls="authPopover" aria-expanded="false" aria-label="Iniciar sesión" title="Iniciar sesión o crear cuenta">
               <span class="material-icons-outlined" id="authIcon">person_outline</span>
             </a>
-            <div class="auth-popover" id="authPopover" hidden>
+            <div class="auth-popover" id="authPopover" role="region" aria-labelledby="profileTitle" hidden>
+              <div class="auth-popover__heading">
+                <h2 id="profileTitle">Mi perfil</h2>
+                <button type="button" class="icon-btn" id="closeProfileBtn" aria-label="Cerrar perfil"><span class="material-icons" aria-hidden="true">close</span></button>
+              </div>
               <div id="authLoggedIn">
                 <div class="auth-popover__user">
                   <div class="auth-popover__avatar" id="userAvatar">U</div>
@@ -55,7 +59,10 @@
                     </span>
                   </div>
                 </div>
-                <hr style="margin:12px 0;border-color:var(--border);" />
+                <dl class="auth-popover__details">
+                  <div><dt>Estado del correo</dt><dd id="profileVerified">—</dd></div>
+                  <div><dt>Miembro desde</dt><dd id="profileJoined">—</dd></div>
+                </dl>
                 <a href="admin.html" class="btn btn--ghost w-full" id="openAdminBtn" target="_blank" rel="noopener" hidden style="text-decoration:none;justify-content:flex-start;">
                   <span class="material-icons">tune</span> Panel administrador
                 </a>
@@ -346,6 +353,6 @@
   <!-- ===== TOAST ===== -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js?v=profile-20260912-2"></script>
 </body>
 </html>

@@ -167,6 +167,19 @@ function initialsOf(name, email) {
 /* -----------------------------------------------------------
    4. AUTH — Supabase signUp / signIn / signOut + renderUI
    ----------------------------------------------------------- */
+let authReady = Promise.resolve();
+
+function loginUrl() {
+  const route = location.pathname.endsWith('.html') ? 'login.html' : 'login';
+  return route + '?next=' + encodeURIComponent(location.pathname + location.search + location.hash);
+}
+
+function returnAfterLogin() {
+  const next = new URLSearchParams(location.search).get('next');
+  const destination = next && /^\/(?:index(?:\.html)?|catalogo(?:\.html)?|admin(?:\.html)?)?(?:[?#].*)?$/.test(next) ? next : 'index.html';
+  window.location.replace(destination);
+}
+
 function isSuperAdmin(user) {
   if (!user) return false;
   /* 
@@ -237,8 +250,7 @@ function renderAuthUI() {
     if (state.user) {
       showToast('Bienvenido de vuelta 🎮 — Redirigiendo…', 'success');
       setTimeout(() => {
-        try { window.opener && window.close(); } catch(e) {}
-        if (!window.closed) window.location.href = 'index.html';
+        returnAfterLogin();
       }, 900);
     }
     return;
@@ -273,9 +285,11 @@ function renderAuthUI() {
   if (!state.user) {
     /* ------ INVITADO: comportamiento normal link a login.html target=_blank ------ */
     if (authBtn) {
-      authBtn.setAttribute('href', 'login.html');
-      authBtn.setAttribute('target', '_blank');
-      authBtn.setAttribute('rel', 'noopener');
+      authBtn.setAttribute('href', loginUrl());
+      authBtn.removeAttribute('target');
+      authBtn.removeAttribute('rel');
+      authBtn.removeAttribute('role');
+      authBtn.setAttribute('aria-expanded', 'false');
       authBtn.setAttribute('title', 'Iniciar sesión o crear cuenta');
       authBtn.setAttribute('aria-label', 'Iniciar sesión');
       /* Quitar handlers popover (preventDefault) si existen (en bind se asegura también) */
@@ -290,6 +304,7 @@ function renderAuthUI() {
       authBtn.removeAttribute('rel');
       authBtn.setAttribute('title', 'Mi cuenta');
       authBtn.setAttribute('aria-label', 'Mi cuenta');
+      authBtn.setAttribute('role', 'button');
     }
     if (authIcon) authIcon.textContent = 'person';
     if (loggedIn) loggedIn.hidden = false;
@@ -300,6 +315,11 @@ function renderAuthUI() {
     if (uName) uName.textContent = state.user.name || 'Usuario';
     const uEmail = $('#userEmail');
     if (uEmail) uEmail.textContent = state.user.email || '';
+    const verified = $('#profileVerified');
+    if (verified) verified.textContent = state.user.raw.email_confirmed_at ? 'Verificado' : 'Pendiente de verificación';
+    const joined = $('#profileJoined');
+    const createdAt = new Date(state.user.raw.created_at);
+    if (joined) joined.textContent = Number.isNaN(createdAt.getTime()) ? '—' : createdAt.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
     if (badgeAdmin) badgeAdmin.hidden = !state.user.isAdmin;
     if (openAdminBtn) openAdminBtn.hidden = !state.user.isAdmin;
   }
@@ -310,6 +330,9 @@ function toggleAuthPopover(forceShow) {
   if (!popover) return;
   const will = forceShow !== undefined ? !!forceShow : popover.hidden;
   popover.hidden = !will;
+  const trigger = $('#authBtn');
+  if (trigger) trigger.setAttribute('aria-expanded', String(will));
+  if (will) $('#closeProfileBtn')?.focus();
 }
 
 function toggleAuthModal(forceShow) {
@@ -422,8 +445,7 @@ async function handleAuthSubmit(e) {
       /* Si estamos en login.html: cerrar pestaña (si fue abierta por script) o redirigir a tienda */
       if (PAGE === 'login') {
         setTimeout(() => {
-          try { if (window.opener) { window.close(); } } catch(e) {}
-          if (!window.closed) window.location.href = 'index.html';
+          returnAfterLogin();
         }, 600);
       } else {
         toggleAuthModal(false);
@@ -458,9 +480,19 @@ async function handleAuthSubmit(e) {
 }
 
 async function handleSignOut() {
+  const button = $('#signOutBtn');
+  if (button) button.disabled = true;
   try {
-    if (supabase) await supabase.auth.signOut();
-  } catch (e) {}
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    }
+  } catch (e) {
+    showToast('No se pudo cerrar la sesión. Inténtalo de nuevo.', 'error');
+    return;
+  } finally {
+    if (button) button.disabled = false;
+  }
   /* Guardar carrito actual en guest antes de borrar user (para no perder) */
   if (state.cart.length) try { localStorage.setItem('gs_cart_guest', JSON.stringify(state.cart)); } catch(e) {}
   state.user = null;
@@ -1138,39 +1170,33 @@ function bindAuthUi() {
     return;
   }
 
-  /* =============== ADMIN + STORE: ÚNICO <a> id=authBtn.
-     - Si NO hay sesión: comportamiento normal link a login.html (target=_blank). NO bind event.
-     - Si SÍ hay sesión: bind click preventDefault -> toggle popover.  =============== */
+  /* Resolve the session before choosing profile or sign-in navigation. */
   const authBtn = $('#authBtn');
   const popover = $('#authPopover');
-
-  const refreshAuthBtnBindings = () => {
-    if (!authBtn) return;
-    /* Primero clonar y reemplazar para quitar listeners anteriores (no queremos que se acumulen) */
-    authBtn.onclick = null;
-    authBtn.removeEventListener('click', state._authBtnListener);
-
-    if (!state.user) {
-      /* Invitado: NO attachar click handler. Se respeta href=login.html target=_blank */
-      state._authBtnListener = null;
-    } else {
-      /* Logeado: attach click preventDefault + toggle popover */
-      state._authBtnListener = function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleAuthPopover();
-      };
-      authBtn.addEventListener('click', state._authBtnListener);
-    }
+  if (authBtn) {
+    authBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      await authReady;
+      if (state.user) toggleAuthPopover();
+      else window.location.href = loginUrl();
+    });
+    authBtn.addEventListener('keydown', (event) => {
+      if (event.key === ' ' && state.user) {
+        event.preventDefault();
+        authBtn.click();
+      }
+    });
+  }
+  const closeProfile = () => {
+    toggleAuthPopover(false);
+    authBtn?.focus();
   };
-
-  refreshAuthBtnBindings();
-  /* Cada vez que cambia la sesión re-bindea por si cambió el rol */
-  supabase.auth.onAuthStateChange(() => setTimeout(refreshAuthBtnBindings, 150));
-
-  /* Cerrar popover al click fuera */
-  document.addEventListener('click', e => {
-    if (popover && !popover.contains(e.target) && !authBtn.contains(e.target)) popover.hidden = true;
+  $('#closeProfileBtn')?.addEventListener('click', closeProfile);
+  document.addEventListener('click', (event) => {
+    if (popover && !popover.hidden && !popover.contains(event.target) && !authBtn?.contains(event.target)) toggleAuthPopover(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && popover && !popover.hidden) closeProfile();
   });
 
   const signOutBtn = $('#signOutBtn');
@@ -1220,8 +1246,7 @@ function bindUi() {
   if (checkoutBtn) checkoutBtn.addEventListener('click', () => {
     if (state.cart.length === 0) { showToast('Tu carrito está vacío.', 'warn'); return; }
     if (!state.user) {
-      showToast('Inicia sesión para guardar tu pedido — abriendo pestaña nueva…', 'warn');
-      window.open('login.html', '_blank', 'noopener');
+      window.location.href = loginUrl();
       return;
     }
     const total = state.cart.reduce((a, c) => a + c.price * c.qty, 0);
@@ -1262,7 +1287,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* 4) Restaurar sesión + Supabase onAuthStateChange (SIEMPRE) */
   if (supabase) {
-    await refreshSession();
+    authReady = refreshSession();
+    await authReady;
 
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
