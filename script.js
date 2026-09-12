@@ -113,7 +113,7 @@ const state = {
   },
   view: 'grid',
   /* CARRITO: array de {id, title, price, qty, platformLabel, emoji} */
-  cart: JSON.parse(localStorage.getItem('gs_cart_guest') || '[]'),
+  cart: readCart('gs_cart_guest') || [],
   authTab: 'signin',        /* signin | signup */
   syncingCart: false,
 };
@@ -209,9 +209,12 @@ async function refreshSession() {
 }
 
 function applyUser(userRecord) {
+  const previousId = state.user?.id;
   if (!userRecord) {
     state.user = null;
+    if (previousId) state.cart = readCart('gs_cart_guest') || [];
     renderAuthUI();
+    renderCart();
     return;
   }
   const email = userRecord.email || '';
@@ -228,13 +231,13 @@ function applyUser(userRecord) {
   };
   renderAuthUI();
 
-  /* Si había carrito de invitado, mergearlo con el del usuario */
-  const guestCart = JSON.parse(localStorage.getItem('gs_cart_guest') || '[]');
-  if (guestCart.length) {
-    state.cart = mergeCarts(state.cart || [], guestCart);
-  }
-  /* Luego sincronizar con DB (async) */
-  syncCartFromDB();
+  if (previousId === userRecord.id) return;
+  const cached = readCart('gs_cart_' + userRecord.id);
+  const guest = readCart('gs_cart_guest') || [];
+  state.cart = mergeCarts(cached || [], guest);
+  renderCart();
+  syncCartFromDB(cached !== null);
+
 }
 
 function renderAuthUI() {
@@ -493,10 +496,8 @@ async function handleSignOut() {
   } finally {
     if (button) button.disabled = false;
   }
-  /* Guardar carrito actual en guest antes de borrar user (para no perder) */
-  if (state.cart.length) try { localStorage.setItem('gs_cart_guest', JSON.stringify(state.cart)); } catch(e) {}
   state.user = null;
-  state.cart = JSON.parse(localStorage.getItem('gs_cart_guest') || '[]');
+  state.cart = readCart('gs_cart_guest') || [];
   renderAuthUI();
 
   if (PAGE !== 'login') {
@@ -515,70 +516,92 @@ async function handleSignOut() {
 /* -----------------------------------------------------------
    5. CARRITO (localStorage + sync Supabase si user logged)
    ----------------------------------------------------------- */
+function readCart(key) {
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved === null) return null;
+    const items = JSON.parse(saved);
+    if (!Array.isArray(items)) return null;
+    return items.flatMap(item => {
+      const product = PRODUCTS.find(p => p.id === Number(item.id));
+      const qty = Number(item.qty);
+      return product && Number.isInteger(qty) && qty > 0
+        ? [{ id: product.id, title: product.title, price: product.price, emoji: product.emoji, platformLabel: product.platformLabel, qty }] : [];
+    });
+  } catch { return null; }
+}
+
 function mergeCarts(a, b) {
-  const out = [...a];
+  const out = a.map(item => ({ ...item }));
   for (const item of b) {
     const existing = out.find(x => x.id === item.id);
-    if (existing) existing.qty = (existing.qty || 1) + (item.qty || 1);
+    if (existing) existing.qty += item.qty;
     else out.push({ ...item });
   }
   return out;
 }
 
+let cartWriteQueue = Promise.resolve();
 function persistCart() {
   try {
-    if (state.user) {
-      /* Usuario autenticado — guardar en BD (async) y también localStorage backup */
-      localStorage.setItem('gs_cart_' + state.user.id, JSON.stringify(state.cart));
-      syncCartToDB();
-    } else {
-      localStorage.setItem('gs_cart_guest', JSON.stringify(state.cart));
-    }
-  } catch (e) {}
+    const key = state.user ? 'gs_cart_' + state.user.id : 'gs_cart_guest';
+    localStorage.setItem(key, JSON.stringify(state.cart));
+  } catch (error) { console.warn('[Cart] local save failed:', error.message); }
+  if (state.user) syncCartToDB();
 }
 
-async function syncCartFromDB() {
-  if (!state.user || !supabase) return;
+async function syncCartFromDB(hasCachedCart = false) {
+  if (!state.user) return;
+  const userId = state.user.id;
   state.syncingCart = true;
+  let restored = hasCachedCart;
   try {
-    const { data, error } = await supabase
-      .from('cart_items')
-      .select('product_id, quantity')
-      .eq('user_id', state.user.id);
-    if (error) throw error;
-    if (data && data.length) {
-      const fromDb = [];
-      for (const row of data) {
-        const p = PRODUCTS.find(pr => pr.id === row.product_id);
-        if (p) fromDb.push({ id: p.id, title: p.title, price: p.price, platformLabel: p.platformLabel, emoji: p.emoji, qty: row.quantity });
+    // A device's saved cart includes edits that may not have reached Supabase.
+    if (!hasCachedCart && supabase) {
+      const { data, error } = await supabase.from('cart_items').select('product_id, quantity').eq('user_id', userId);
+      if (error) throw error;
+      if (state.user?.id !== userId) return;
+      const remote = (data || []).flatMap(row => {
+        const p = PRODUCTS.find(product => product.id === Number(row.product_id));
+        return p ? [{ id: p.id, title: p.title, price: p.price, platformLabel: p.platformLabel, emoji: p.emoji, qty: row.quantity }] : [];
+      });
+      state.cart = mergeCarts(remote, state.cart);
+      restored = true;
+    }
+  } catch (error) { console.warn('[Cart] restore failed:', error.message); }
+  finally {
+    if (state.user?.id === userId) {
+      state.syncingCart = false;
+      if (restored) {
+        try {
+          localStorage.setItem('gs_cart_' + userId, JSON.stringify(state.cart));
+          localStorage.removeItem('gs_cart_guest');
+        } catch (error) { console.warn('[Cart] cache failed:', error.message); }
+        syncCartToDB();
       }
-      const merged = mergeCarts(fromDb, state.cart);
-      state.cart = merged;
       renderCart();
       if ($('#featuredGrid')) renderFeatured();
       if ($('#productsGrid')) renderProducts();
-    } else {
-      /* Si BD está vacía y hay carrito en memoria, guardarlo */
-      if (state.cart.length) syncCartToDB();
     }
-  } catch (e) { console.warn('[Cart] sync from DB fail:', e.message); }
-  finally { state.syncingCart = false; }
+  }
 }
 
-async function syncCartToDB() {
-  if (!state.user || !supabase || state.syncingCart) return;
-  try {
-    /* 1) Borramos todos los renglones de este usuario (replace) */
-    await supabase.from('cart_items').delete().eq('user_id', state.user.id);
-    if (state.cart.length) {
-      const rows = state.cart.map(c => ({
-        user_id: state.user.id,
-        product_id: c.id,
-        quantity: c.qty || 1,
-      }));
-      await supabase.from('cart_items').insert(rows);
+function syncCartToDB() {
+  if (!state.user || !supabase || state.syncingCart) return cartWriteQueue;
+  const userId = state.user.id;
+  const rows = state.cart.map(c => ({ user_id: userId, product_id: c.id, quantity: c.qty }));
+  // Serialize snapshots so a slower previous write cannot overwrite a later edit.
+  cartWriteQueue = cartWriteQueue.then(async () => {
+    if (rows.length) {
+      const { error } = await supabase.from('cart_items').upsert(rows, { onConflict: 'user_id,product_id' });
+      if (error) throw error;
     }
-  } catch (e) { console.warn('[Cart] sync to DB fail:', e.message); }
+    let deletion = supabase.from('cart_items').delete().eq('user_id', userId);
+    if (rows.length) deletion = deletion.not('product_id', 'in', '(' + rows.map(r => r.product_id).join(',') + ')');
+    const { error } = await deletion;
+    if (error) throw error;
+  }).catch(error => console.warn('[Cart] sync failed; local cart retained:', error.message));
+  return cartWriteQueue;
 }
 
 /* -----------------------------------------------------------
@@ -884,6 +907,9 @@ function renderCart() {
   countEl.textContent = totalCount;
   countEl.style.display = totalCount > 0 ? 'grid' : 'none';
 
+  const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  if ($('#cartSubtotal')) $('#cartSubtotal').textContent = formatPrice(subtotal);
+  if ($('#cartTotal')) $('#cartTotal').textContent = formatPrice(subtotal);
   if (state.cart.length === 0) {
     body.innerHTML = `
       <div class="cart-drawer__empty">
@@ -937,7 +963,7 @@ function buildWhatsAppMessage() {
   const userEmail = state.user ? state.user.email : null;
 
   const lines = [];
-  lines.push('🛒 *NUEVO PEDIDO — GLITCH SHOP*');
+  lines.push('Hola, Glitch Shop. Quiero comprar los siguientes productos:');
   lines.push('');
   lines.push(`📅 Fecha: ${dateStr}`);
   if (userName) lines.push(`👤 Cliente: ${userName}`);
@@ -954,7 +980,7 @@ function buildWhatsAppMessage() {
   lines.push('');
   lines.push(`💵 *Subtotal:* ${formatPrice(sub)}`);
   lines.push(`🚚 *Envío:* ${freeShip ? '✅ GRATIS (≥ $2,500)' : 'Pendiente de calcular'}`);
-  lines.push(`💰 *TOTAL A PAGAR:* ${formatPrice(sub)}`);
+  lines.push(`💰 *Total de productos:* ${formatPrice(sub)}`);
   lines.push('');
   lines.push('🙋 Hola! Quiero confirmar este pedido. ¿Podrían indicarme método de pago y tiempo de entrega? ¡Gracias! 🎮');
 
@@ -962,22 +988,19 @@ function buildWhatsAppMessage() {
 }
 
 function updateWhatsAppHref() {
-  const btn = $('#whatsappCheckoutBtn');
-  if (!btn) return;
-  if (!state.cart.length) { btn.setAttribute('href', '#'); btn.setAttribute('disabled', ''); return; }
-  const msg = buildWhatsAppMessage();
-  const url = 'https://wa.me/' + OWNER_WHATSAPP_E164.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg);
-  btn.setAttribute('href', url);
-  btn.removeAttribute('disabled');
+  const button = $('#whatsappCheckoutBtn');
+  if (button) button.disabled = !state.cart.length;
 }
 
-function handleWhatsAppClick(e) {
-  if (!state.cart.length) { e.preventDefault(); showToast('Tu carrito está vacío.', 'warn'); return; }
-  /* Guardar pedido en tabla orders si está logeado + supabase */
-  saveOrderToDB();
-  /* abrir WhatsApp en nueva pestaña — target="_blank" ya está en HTML */
-  toggleCart(false);
-  showToast('Abriendo WhatsApp... Te contactaremos pronto. 🎮', 'success');
+function handleWhatsAppClick(event) {
+  event.preventDefault();
+  if (!state.cart.length) { showToast('Tu carrito está vacío.', 'warn'); return; }
+  const message = encodeURIComponent(buildWhatsAppMessage());
+  const phone = OWNER_WHATSAPP_E164.replace(/\D/g, '');
+  $('#whatsappWebLink').href = 'https://web.whatsapp.com/send?phone=' + phone + '&text=' + message;
+  $('#whatsappAppLink').href = 'https://wa.me/' + phone + '?text=' + message;
+  $('#whatsappOrderPreview').textContent = buildWhatsAppMessage();
+  $('#whatsappDialog').showModal();
 }
 
 async function saveOrderToDB() {
@@ -989,7 +1012,7 @@ async function saveOrderToDB() {
       line_total: Math.round(c.price * c.qty * 100) / 100,
     }));
     const msg = buildWhatsAppMessage();
-    await supabase.from('orders').insert({
+    const { error } = await supabase.from('orders').insert({
       user_id: state.user.id,
       customer_name: state.user.name || null,
       customer_email: state.user.email || null,
@@ -998,14 +1021,14 @@ async function saveOrderToDB() {
       total_mxn: Math.round(sub * 100) / 100,
       whatsapp_msg: msg,
       owner_phone_e164: OWNER_WHATSAPP_E164,
-      status: 'sent_to_owner',
-      whatsapp_sent_at: new Date().toISOString(),
+      status: 'pending',
     });
-    /* Limpiar carrito SOLO si fue exitoso insert */
-    state.cart = [];
-    persistCart();
-    renderCart();
-  } catch (e) { console.warn('[Orders] saveOrderToDB fail:', e.message); }
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.warn('[Orders] saveOrderToDB fail:', e.message);
+    return false;
+  }
 }
 
 function toggleCart(show) {
@@ -1250,14 +1273,23 @@ function bindUi() {
       return;
     }
     const total = state.cart.reduce((a, c) => a + c.price * c.qty, 0);
-    saveOrderToDB().then(() => {
-      showToast(`✅ Pedido guardado. Total: ${formatPrice(total)} — te contactaremos por WhatsApp.`, 'success');
-    });
+    checkoutBtn.disabled = true;
+    saveOrderToDB().then(saved => {
+      showToast(saved ? `Pedido guardado. Total: ${formatPrice(total)}. Puedes continuar por WhatsApp.` : 'No se pudo guardar el pedido. Tu carrito sigue disponible; puedes comprar por WhatsApp.', saved ? 'success' : 'error');
+    }).finally(() => { checkoutBtn.disabled = false; });
   });
 
   /* Botón WhatsApp checkout — abre chat con dueño */
   const waBtn = $('#whatsappCheckoutBtn');
   if (waBtn) waBtn.addEventListener('click', handleWhatsAppClick);
+  const whatsappDialog = $('#whatsappDialog');
+  $('#closeWhatsAppDialog')?.addEventListener('click', () => whatsappDialog.close());
+  whatsappDialog?.addEventListener('click', event => {
+    if (event.target === whatsappDialog) {
+      const bounds = whatsappDialog.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) whatsappDialog.close();
+    }
+  });
 }
 
 /* -----------------------------------------------------------

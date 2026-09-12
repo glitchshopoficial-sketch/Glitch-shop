@@ -17,7 +17,7 @@
   <!-- SUPABASE JS CLIENT (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <link rel="stylesheet" href="styles.css?v=profile-20260912-2" />
+  <link rel="stylesheet" href="styles.css?v=cart-20260912" />
 </head>
 <body>
 
@@ -309,23 +309,36 @@
           <span>Total</span>
           <span id="cartTotal">$0.00</span>
         </div>
-        <button class="btn btn--whatsapp w-full" id="whatsappCheckoutBtn" target="_blank" rel="noopener">
+        <button class="btn btn--whatsapp w-full" id="whatsappCheckoutBtn" type="button">
           <span class="material-icons">whatsapp</span> Comprar vía WhatsApp
         </button>
         <button class="btn btn--ghost w-full" id="checkoutBtn" style="margin-top:8px;">
-          <span class="material-icons">lock</span> Finalizar compra (guardar pedido)
+          <span class="material-icons">lock</span> Guardar pedido
         </button>
         <p class="cart-drawer__secure">
           <span class="material-icons" style="font-size:14px;vertical-align:-3px;">verified_user</span>
-          Pago seguro · 3D Secure · SSL
+          Confirma disponibilidad y envío con la tienda.
         </p>
       </footer>
     </div>
   </aside>
 
+  <dialog class="whatsapp-dialog" id="whatsappDialog" aria-labelledby="whatsappDialogTitle" aria-describedby="whatsappDialogDescription">
+    <div class="whatsapp-dialog__header">
+      <h2 id="whatsappDialogTitle">¿Quieres abrir WhatsApp?</h2>
+      <button type="button" class="icon-btn" id="closeWhatsAppDialog" aria-label="Cerrar opciones de WhatsApp"><span class="material-icons" aria-hidden="true">close</span></button>
+    </div>
+    <p id="whatsappDialogDescription">Abre el chat de Glitch Shop con tu pedido listo. Revisa el mensaje y pulsa Enviar en WhatsApp.</p>
+    <div class="whatsapp-dialog__actions">
+      <a class="btn btn--whatsapp" id="whatsappWebLink" target="_blank" rel="noopener noreferrer">Abrir WhatsApp en el navegador</a>
+      <a class="btn btn--ghost" id="whatsappAppLink" target="_blank" rel="noopener noreferrer">Abrir WhatsApp en la aplicación</a>
+    </div>
+    <details><summary>Ver mensaje del pedido</summary><pre id="whatsappOrderPreview"></pre></details>
+  </dialog>
+
   <!-- ===== TOAST ===== -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="script.js?v=profile-20260912-2"></script>
+  <script type="module" src="script.js?v=cart-20260912"></script>
 </body>
 </html>

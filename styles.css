@@ -1978,3 +1978,17 @@ ul { list-style: none; }
 @media (max-width: 640px) {
   .auth-popover { position: fixed; top: 88px; right: 16px; max-height: calc(100dvh - 104px); overflow-y: auto; }
 }
+
+.cart-drawer__footer[hidden] { display: none !important; }
+.cart-drawer__body { min-height: 0; }
+.cart-drawer__header, .cart-drawer__footer { flex-shrink: 0; }
+.whatsapp-dialog { margin: auto; width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid var(--border-strong); border-radius: var(--r-xl); color: var(--text); background: var(--bg-card); box-shadow: var(--shadow-lg); overflow-y: auto; }
+.whatsapp-dialog::backdrop { background: #000b; }
+.whatsapp-dialog__header { display: flex; align-items: center; gap: 12px; justify-content: space-between; margin-bottom: 14px; }
+.whatsapp-dialog__header h2 { font-size: 23px; line-height: 1.3; }
+.whatsapp-dialog p { font-size: 15px; color: var(--text-soft); }
+.whatsapp-dialog__actions { display: grid; gap: 12px; margin: 22px 0; }
+.whatsapp-dialog__actions .btn { min-height: 48px; white-space: normal; text-align: center; }
+.whatsapp-dialog summary { cursor: pointer; font-size: 14px; }
+.whatsapp-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: 14px; padding-top: 16px; color: var(--text-soft); }
+.whatsapp-dialog :focus-visible { outline: 2px solid #aaaaff; outline-offset: 3px; }
