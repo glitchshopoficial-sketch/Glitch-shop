@@ -624,7 +624,7 @@ function productCard(p) {
           : `<div class="product__emoji">${p.emoji}</div>`}
       </div>
       <div class="product__body">
-        <h3 class="product__title">${p.title}</h3>
+        <h3 class="product__title"><button type="button" class="product__detail-trigger" aria-haspopup="dialog" aria-controls="productDetailDialog">${escapeHtml(p.title)}</button></h3>
         ${p.description ? `<p class="product__desc">${p.description}</p>` : ''}
         <div class="product__price-row">
           <span class="product__price">${formatPrice(p.price)}</span>
@@ -648,6 +648,12 @@ function productCard(p) {
 }
 
 function bindProductEvents(rootEl) {
+  $$('.product', rootEl || document).forEach(card => {
+    card.addEventListener('click', event => {
+      if (event.target.closest('button, a') && !event.target.closest('.product__detail-trigger')) return;
+      openProductDetail(+card.dataset.id, card);
+    });
+  });
   $$('[data-add]', rootEl || document).forEach(btn => {
     btn.addEventListener('click', () => addToCart(+btn.dataset.add));
   });
@@ -659,6 +665,140 @@ function bindProductEvents(rootEl) {
       showToast(isActive ? 'Añadido a favoritos' : 'Eliminado de favoritos', 'success');
     });
   });
+}
+
+/* Card-to-dialog FLIP transition, using the native Web Animations API. */
+let productDetailModal = null;
+
+class PrettyModal {
+  constructor(dialog) {
+    this.dialog = dialog;
+    dialog.addEventListener('cancel', event => {
+      event.preventDefault();
+      this.close();
+    });
+    dialog.addEventListener('click', event => {
+      const rect = dialog.getBoundingClientRect();
+      if (event.target.closest('[data-detail-close]') ||
+          (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right ||
+            event.clientY < rect.top || event.clientY > rect.bottom))) this.close();
+    });
+    dialog.addEventListener('close', () => {
+      this.animation?.cancel();
+      this.closing = false;
+      document.body.style.overflow = this.previousOverflow;
+      dialog.classList.remove('pretty-modal-opening', 'pretty-modal-closing');
+      this.getOrigin()?.querySelector('.product__detail-trigger')?.focus({ preventScroll: true });
+    });
+  }
+
+  getOrigin() {
+    // Adding to the cart re-renders the cards; resolve the new card when needed.
+    return this.origin?.isConnected ? this.origin :
+      this.originGrid?.querySelector(`.product[data-id="${this.productId}"]`);
+  }
+
+  cardTransform(rect, target) {
+    return `translate(${rect.left - target.left}px, ${rect.top - target.top}px) scale(${rect.width / target.width}, ${rect.height / target.height})`;
+  }
+
+  animate(frames, done) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !this.dialog.animate) {
+      done();
+      return;
+    }
+    const animation = this.dialog.animate(frames, {
+      duration: 700, easing: 'cubic-bezier(.3,.2,.12,1)', fill: 'both'
+    });
+    this.animation = animation;
+    animation.onfinish = () => { animation.cancel(); done(); };
+  }
+
+  open(origin) {
+    if (this.dialog.open) return;
+    this.origin = origin;
+    this.originGrid = origin.parentElement;
+    this.productId = origin.dataset.id;
+    const rect = origin.getBoundingClientRect();
+    this.previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    this.dialog.showModal();
+    const target = this.dialog.getBoundingClientRect();
+    this.dialog.classList.add('pretty-modal-opening');
+    this.animate([
+      { transform: this.cardTransform(rect, target), opacity: 0, filter: 'blur(8px)', borderRadius: '20px' },
+      { transform: 'none', opacity: 1, filter: 'blur(0px)', borderRadius: '24px' }
+    ], () => this.dialog.classList.remove('pretty-modal-opening'));
+  }
+
+  close() {
+    if (!this.dialog.open || this.closing) return;
+    this.closing = true;
+    const current = getComputedStyle(this.dialog);
+    const first = { transform: current.transform, opacity: current.opacity, filter: current.filter, borderRadius: current.borderRadius };
+    this.animation?.cancel();
+    this.dialog.classList.remove('pretty-modal-opening');
+    this.dialog.classList.add('pretty-modal-closing');
+    const rect = this.getOrigin()?.getBoundingClientRect();
+    const target = this.dialog.getBoundingClientRect();
+    const visible = rect && rect.width && rect.bottom > 0 && rect.top < window.innerHeight;
+    this.animate([first, {
+      transform: visible ? this.cardTransform(rect, target) : 'scale(.9)',
+      opacity: 0, filter: 'blur(32px)', borderRadius: '400px'
+    }], () => this.dialog.close());
+  }
+}
+
+function openProductDetail(id, origin) {
+  const p = PRODUCTS.find(product => product.id === id);
+  if (!p || productDetailModal?.dialog.open) return;
+  if (!productDetailModal) {
+    const dialog = document.createElement('dialog');
+    dialog.id = 'productDetailDialog';
+    dialog.className = 'product-detail';
+    dialog.setAttribute('aria-labelledby', 'productDetailTitle');
+    document.body.appendChild(dialog);
+    productDetailModal = new PrettyModal(dialog);
+  }
+  const stock = stockBadge(p.stock);
+  const discount = p.oldPrice > p.price ? Math.round((1 - p.price / p.oldPrice) * 100) : 0;
+  const categories = { juegos: 'Videojuego', consolas: 'Consola', accesorios: 'Accesorio', merch: 'Merchandising' };
+  const dialog = productDetailModal.dialog;
+  dialog.innerHTML = `
+    <button type="button" class="icon-btn product-detail__close" data-detail-close aria-label="Cerrar detalle" autofocus>
+      <span class="material-icons" aria-hidden="true">close</span>
+    </button>
+    <div class="product-detail__layout">
+      <div class="product-detail__visual">
+        <span class="product-detail__tag">${p.isNew ? 'Nuevo · ' : ''}${escapeHtml(p.platformLabel || p.platform)}</span>
+        ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.title)}" class="product-detail__image" />`
+          : `<span class="product-detail__emoji" role="img" aria-label="${escapeHtml(p.title)}">${escapeHtml(p.emoji || '🎮')}</span>`}
+      </div>
+      <div class="product-detail__info">
+        <p class="product-detail__eyebrow">${escapeHtml(categories[p.category] || p.category)} · GLITCH SHOP</p>
+        <h2 id="productDetailTitle">${escapeHtml(p.title)}</h2>
+        <span class="product__stock ${stock.cls}">${stock.label}</span>
+        <p class="product-detail__description">${escapeHtml(p.description || `Consulta disponibilidad y detalles de ${p.title} con la tienda.`)}</p>
+        <dl class="product-detail__specs">
+          <div><dt>Plataforma</dt><dd>${escapeHtml(p.platformLabel || p.platform)}</dd></div>
+          <div><dt>Categoría</dt><dd>${escapeHtml(categories[p.category] || p.category)}</dd></div>
+        </dl>
+        <div class="product__price-row">
+          <span class="product__price">${formatPrice(p.price)}</span><span class="product-detail__currency">MXN</span>
+          ${discount ? `<span class="product__price--old">${formatPrice(p.oldPrice)}</span><span class="product__discount">AHORRA ${discount}%</span>` : ''}
+        </div>
+        <button type="button" class="product__add product-detail__add" ${p.stock === 'soldout' ? 'disabled' : ''}>
+          <span class="material-icons" aria-hidden="true">shopping_cart</span>${p.stock === 'soldout' ? 'Agotado' : 'Añadir al carrito'}
+        </button>
+        <p class="product-detail__feedback" role="status" aria-live="polite"></p>
+      </div>
+    </div>`;
+  $('.product-detail__add', dialog).addEventListener('click', () => {
+    if (p.stock === 'soldout') return;
+    addToCart(p.id);
+    $('.product-detail__feedback', dialog).textContent = `Añadido al carrito · ${state.cart.find(item => item.id === p.id).qty} en tu carrito`;
+  });
+  productDetailModal.open(origin);
 }
 
 /* -----------------------------------------------------------
