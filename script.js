@@ -667,12 +667,16 @@ function bindProductEvents(rootEl) {
   });
 }
 
-/* Card-to-dialog FLIP transition, using the native Web Animations API. */
+/* Card-to-dialog transition using the supplied GSAP Flip / CustomEase effect. */
 let productDetailModal = null;
 
 class PrettyModal {
   constructor(dialog) {
     this.dialog = dialog;
+    if (window.gsap && window.Flip && window.CustomEase) {
+      window.gsap.registerPlugin(window.Flip, window.CustomEase);
+      this.ease = window.CustomEase.create('pretty-modal', 'M0,0 C0.305,0.206 0.116,0.567 0.3,0.8 0.394,0.921 0.491,1 1,1');
+    }
     dialog.addEventListener('cancel', event => {
       event.preventDefault();
       this.close();
@@ -684,12 +688,19 @@ class PrettyModal {
             event.clientY < rect.top || event.clientY > rect.bottom))) this.close();
     });
     dialog.addEventListener('close', () => {
+      this.flipAnimation?.kill();
       this.animation?.cancel();
       this.closing = false;
       document.body.style.overflow = this.previousOverflow;
       dialog.classList.remove('pretty-modal-opening', 'pretty-modal-closing');
+      this.restoreStyle();
       this.getOrigin()?.querySelector('.product__detail-trigger')?.focus({ preventScroll: true });
     });
+  }
+
+  restoreStyle() {
+    if (this.originalStyle === null) this.dialog.removeAttribute('style');
+    else this.dialog.setAttribute('style', this.originalStyle);
   }
 
   getOrigin() {
@@ -703,7 +714,9 @@ class PrettyModal {
   }
 
   animate(frames, done) {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !this.dialog.animate) {
+    // Keep the requested animation visible even when the OS requests reduced motion.
+    // Native fallback also animates if a GSAP asset fails to load.
+    if (!this.dialog.animate) {
       done();
       return;
     }
@@ -719,10 +732,26 @@ class PrettyModal {
     this.origin = origin;
     this.originGrid = origin.parentElement;
     this.productId = origin.dataset.id;
+    this.originalStyle = this.dialog.getAttribute('style');
+    const flipId = `pretty-modal-${this.productId}`;
+    origin.dataset.flipId = this.dialog.dataset.flipId = flipId;
+    const originState = this.ease ? window.Flip.getState(origin) : null;
     const rect = origin.getBoundingClientRect();
     this.previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     this.dialog.showModal();
+    this.dialog.scrollTop = 0;
+    if (originState) {
+      this.flipAnimation = window.Flip.from(originState, {
+        targets: this.dialog,
+        scale: true,
+        ease: this.ease,
+        toggleClass: 'pretty-modal-opening',
+        duration: 0.7,
+        onComplete: () => this.restoreStyle()
+      });
+      return;
+    }
     const target = this.dialog.getBoundingClientRect();
     this.dialog.classList.add('pretty-modal-opening');
     this.animate([
@@ -734,8 +763,26 @@ class PrettyModal {
   close() {
     if (!this.dialog.open || this.closing) return;
     this.closing = true;
+    const origin = this.getOrigin();
+    const originRect = origin?.getBoundingClientRect();
+    const originVisible = originRect && originRect.width && originRect.bottom > 0 && originRect.top < window.innerHeight;
+    if (this.ease && originVisible) {
+      this.flipAnimation?.kill();
+      this.dialog.classList.remove('pretty-modal-opening');
+      origin.dataset.flipId = this.dialog.dataset.flipId;
+      this.flipAnimation = window.Flip.to(window.Flip.getState(origin), {
+        targets: this.dialog,
+        scale: true,
+        ease: this.ease,
+        toggleClass: 'pretty-modal-closing',
+        duration: 0.7,
+        onComplete: () => this.dialog.close()
+      });
+      return;
+    }
     const current = getComputedStyle(this.dialog);
     const first = { transform: current.transform, opacity: current.opacity, filter: current.filter, borderRadius: current.borderRadius };
+    this.flipAnimation?.kill();
     this.animation?.cancel();
     this.dialog.classList.remove('pretty-modal-opening');
     this.dialog.classList.add('pretty-modal-closing');
