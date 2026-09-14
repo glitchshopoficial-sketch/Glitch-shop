@@ -2413,3 +2413,9 @@ select option { background: var(--bg-elev); color: var(--text); }
 .whatsapp-dialog summary { cursor: pointer; font-size: 14px; }
 .whatsapp-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: 14px; padding-top: 16px; color: var(--text-soft); }
 .whatsapp-dialog :focus-visible { outline: 2px solid #aaaaff; outline-offset: 3px; }
+/* Catalog controls remain usable with or without the filter panel. */
+.catalog__layout--no-filters { grid-template-columns: 1fr; }
+.filters[hidden] { display: none; }
+.catalog-search__input { width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--bg); font: inherit; }
+.catalog-search__input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.catalog__header { flex-wrap: wrap; }

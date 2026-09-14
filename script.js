@@ -1859,6 +1859,25 @@ function bindAuthUi() {
   });
 }
 
+async function submitNewsletter(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  const button = form.querySelector('button[type="submit"]');
+  if (button.disabled) return;
+  const input = form.querySelector('input[name="email"]');
+  button.disabled = true;
+  try {
+    if (!supabase) throw new Error('Servicio no disponible');
+    const { error } = await supabase.rpc('subscribe_newsletter', { subscriber_email: input.value.trim().toLowerCase() });
+    if (error) throw error;
+    input.value = '';
+    showToast('Tu correo quedó registrado para recibir las próximas ofertas.');
+  } catch (error) {
+    showToast('No pudimos registrar tu correo. Intenta más tarde o contáctanos por WhatsApp.', 'error');
+  } finally { button.disabled = false; }
+}
+
 function bindUi() {
   $$('[data-support]').forEach(link => { link.href = 'https://wa.me/' + OWNER_WHATSAPP_E164 + '?text=' + encodeURIComponent(link.dataset.support); });
   $('#newsletterForm')?.addEventListener('submit', submitNewsletter);
