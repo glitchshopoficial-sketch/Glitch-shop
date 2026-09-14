@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Catálogo — Glitch Shop | Juegos, Consolas y Accesorios</title>
+  <link rel="icon" type="image/jpeg" href="/imagenes/hola1.jpg" />
+  <link rel="apple-touch-icon" href="/imagenes/hola1.jpg" />
   <meta name="description" content="Explora el catálogo completo de Glitch Shop: consolas, videojuegos, accesorios y merchandising oficial. Envíos a toda la República Mexicana." />
 
   <!-- GOOGLE FONTS -->
@@ -17,7 +19,7 @@
   <!-- SUPABASE JS CLIENT (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <link rel="stylesheet" href="styles.css?v=modal-flip-20260913-2" />
+  <link rel="stylesheet" href="styles.css?v=store-fixes-20260914" />
 </head>
 <body>
 
@@ -146,15 +148,15 @@
             <h2 class="section-title">Explora la selección</h2>
             <p class="section-subtitle">Filtra por categoría, plataforma, precio y disponibilidad. Precios en MXN.</p>
           </div>
+          <button type="button" class="btn btn--ghost" id="toggleFilters" aria-controls="catalogFilters" aria-expanded="true">Filtros</button>
           <div class="catalog__count">
-            <span class="material-icons">inventory_2</span>
-            <span id="productCount">0</span> productos
+            <span id="productCount" role="status">0 productos</span>
           </div>
         </div>
 
         <div class="catalog__layout">
           <!-- ===== FILTERS ===== -->
-          <aside class="filters" aria-label="Filtros de búsqueda">
+          <aside class="filters" id="catalogFilters" aria-label="Filtros de búsqueda">
             <div class="filters__group">
               <h3 class="filters__title"><span class="material-icons">search</span> Buscar</h3>
               <div class="filters__search">
@@ -203,6 +205,7 @@
               </div>
             </div>
 
+            <label class="radio"><input type="checkbox" id="favoritesOnly" /><span>Solo mis favoritos</span></label>
             <button class="btn btn--ghost w-full" id="resetFilters">
               <span class="material-icons">refresh</span> Limpiar filtros
             </button>
@@ -247,59 +250,30 @@
   <footer class="footer">
     <div class="container footer__grid">
       <div class="footer__col footer__col--brand">
-        <a href="index.html" class="logo logo--footer">
-          <img src="imagenes/hola1.jpg" alt="Glitch Shop Logo" class="logo__img" />
-        </a>
-        <p class="footer__about">Tienda oficial de videojuegos con la mejor selección de consolas, accesorios y merchandising. ¡Vive la experiencia Glitch en todo México!</p>
-        <div class="socials">
-          <a href="#" aria-label="Facebook" class="socials__link"><span class="material-icons">facebook</span></a>
-          <a href="#" aria-label="Instagram" class="socials__link"><span class="material-icons">photo_camera</span></a>
-          <a href="#" aria-label="Twitter / X" class="socials__link"><span class="material-icons">alternate_email</span></a>
-          <a href="#" aria-label="WhatsApp" class="socials__link"><span class="material-icons">chat</span></a>
-          <a href="#" aria-label="YouTube" class="socials__link"><span class="material-icons">smart_display</span></a>
-        </div>
+        <a href="index.html" class="logo logo--footer"><img src="imagenes/hola1.jpg" alt="Glitch Shop" class="logo__img" /></a>
+        <p class="footer__about">Videojuegos, consolas y accesorios para tu próxima partida. Atención personalizada por WhatsApp.</p>
       </div>
-
       <div class="footer__col">
-        <h4 class="footer__title">Sobre nosotros</h4>
+        <h4 class="footer__title">Explora la tienda</h4>
         <ul class="footer__list">
-          <li><a href="#"><span class="material-icons">info</span> Quiénes somos</a></li>
-          <li><a href="#"><span class="material-icons">work</span> Trabaja con nosotros</a></li>
-          <li><a href="#"><span class="material-icons">article</span> Prensa y noticias</a></li>
-          <li><a href="#"><span class="material-icons">group</span> Programa de afiliados</a></li>
+          <li><a href="catalogo.html#consolas">Consolas</a></li>
+          <li><a href="catalogo.html#juegos">Videojuegos</a></li>
+          <li><a href="catalogo.html#accesorios">Accesorios</a></li>
+          <li><a href="catalogo.html#ofertas">Ofertas</a></li>
         </ul>
       </div>
-
       <div class="footer__col">
-        <h4 class="footer__title">Ayuda y Soporte</h4>
+        <h4 class="footer__title">Te ayudamos</h4>
         <ul class="footer__list">
-          <li><a href="#"><span class="material-icons">help_center</span> Centro de ayuda</a></li>
-          <li><a href="#"><span class="material-icons">local_shipping</span> Rastrear pedido</a></li>
-          <li><a href="#"><span class="material-icons">call</span> Contáctanos</a></li>
-          <li><a href="#"><span class="material-icons">chat_bubble</span> Chat en vivo</a></li>
+          <li><a data-support="Hola, tengo una pregunta sobre un producto." href="https://wa.me/5216442514818" target="_blank" rel="noopener">Consultar un producto</a></li>
+          <li><a data-support="Hola, quisiera consultar el estado de mi pedido." href="https://wa.me/5216442514818" target="_blank" rel="noopener">Consultar mi pedido</a></li>
+          <li><a data-support="Hola, necesito información sobre envíos o cambios." href="https://wa.me/5216442514818" target="_blank" rel="noopener">Envíos y cambios</a></li>
+          <li><a href="login.html">Mi cuenta</a></li>
         </ul>
       </div>
-
       <div class="footer__col">
-        <h4 class="footer__title">Políticas</h4>
-        <ul class="footer__list">
-          <li><a href="#"><span class="material-icons">local_shipping</span> Envíos y entrega</a></li>
-          <li><a href="#"><span class="material-icons">assignment_return</span> Devoluciones y cambios</a></li>
-          <li><a href="#"><span class="material-icons">description</span> Términos y condiciones</a></li>
-          <li><a href="#"><span class="material-icons">privacy_tip</span> Privacidad y seguridad</a></li>
-        </ul>
-      </div>
-
-      <div class="footer__col">
-        <h4 class="footer__title">Métodos de pago</h4>
-        <div class="payments">
-          <div class="payments__card" title="Visa"><span class="material-icons">credit_score</span> VISA</div>
-          <div class="payments__card" title="Mastercard"><span class="material-icons">payments</span> MC</div>
-          <div class="payments__card" title="American Express"><span class="material-icons">credit_card</span> AMEX</div>
-          <div class="payments__card" title="PayPal"><span class="material-icons">account_balance_wallet</span> PP</div>
-          <div class="payments__card" title="OXXO / SPEI"><span class="material-icons">point_of_sale</span> OXXO</div>
-        </div>
-        <p class="footer__payment-note"><span class="material-icons">shield</span> Pagos 100% encriptados y seguros. SSL Certificate.</p>
+        <h4 class="footer__title">Compra con atención personal</h4>
+        <p class="footer__about">Prepara tu carrito y continúa por WhatsApp para confirmar disponibilidad, envío y formas de pago con la tienda.</p>
       </div>
     </div>
     <div class="footer__bottom container">
@@ -369,6 +343,6 @@
   <script defer src="vendor/gsap/gsap.min.js?v=3.13.0"></script>
   <script defer src="vendor/gsap/Flip.min.js?v=3.13.0"></script>
   <script defer src="vendor/gsap/CustomEase.min.js?v=3.13.0"></script>
-  <script type="module" src="script.js?v=modal-flip-20260913-2"></script>
+  <script type="module" src="script.js?v=store-fixes-20260914"></script>
 </body>
 </html>

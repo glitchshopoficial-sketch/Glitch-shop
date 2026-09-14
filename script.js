@@ -112,6 +112,7 @@ const state = {
     sort: 'featured',
   },
   view: 'grid',
+  favorites: readFavorites(),
   /* CARRITO: array de {id, title, price, qty, platformLabel, emoji} */
   cart: readCart('gs_cart_guest') || [],
   authTab: 'signin',        /* signin | signup */
@@ -607,6 +608,23 @@ function syncCartToDB() {
 /* -----------------------------------------------------------
    6. PRODUCT CARD (shared)
    ----------------------------------------------------------- */
+function readFavorites() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('gs_favorites') || '[]');
+    return Array.isArray(saved) ? saved.filter(Number.isSafeInteger) : [];
+  } catch { return []; }
+}
+
+function toggleFavorite(id) {
+  const next = state.favorites.includes(id) ? state.favorites.filter(value => value !== id) : [...state.favorites, id];
+  try { localStorage.setItem('gs_favorites', JSON.stringify(next)); }
+  catch { showToast('No se pudo guardar el favorito en este navegador.', 'error'); return; }
+  state.favorites = next;
+  if ($('#featuredGrid')) renderFeatured();
+  if ($('#productsGrid')) renderProducts();
+  showToast(next.includes(id) ? 'Añadido a favoritos' : 'Eliminado de favoritos');
+}
+
 function productCard(p) {
   const discount = p.oldPrice ? Math.round((1 - p.price / p.oldPrice) * 100) : 0;
   const stock = stockBadge(p.stock);
@@ -638,8 +656,8 @@ function productCard(p) {
               ? '<span class="material-icons" style="font-size:16px;vertical-align:-2px;margin-right:4px;">check_circle</span>Añadido'
               : '<span class="material-icons" style="font-size:16px;vertical-align:-2px;margin-right:4px;">shopping_cart</span>Añadir al carrito'}
           </button>
-          <button class="product__fav" aria-label="Favorito">
-            <span class="material-icons" style="font-size:18px;">favorite_border</span>
+          <button class="product__fav ${state.favorites.includes(p.id) ? 'product__fav--active' : ''}" data-favorite="${p.id}" aria-pressed="${state.favorites.includes(p.id)}" aria-label="${state.favorites.includes(p.id) ? 'Quitar de' : 'Añadir a'} favoritos">
+            <span aria-hidden="true" style="font-size:22px;">${state.favorites.includes(p.id) ? '♥' : '♡'}</span>
           </button>
         </div>
       </div>
@@ -659,10 +677,7 @@ function bindProductEvents(rootEl) {
   });
   $$('.product__fav', rootEl || document).forEach(btn => {
     btn.addEventListener('click', () => {
-      const icon = btn.querySelector('.material-icons');
-      const isActive = btn.classList.toggle('product__fav--active');
-      if (icon) icon.textContent = isActive ? 'favorite' : 'favorite_border';
-      showToast(isActive ? 'Añadido a favoritos' : 'Eliminado de favoritos', 'success');
+      toggleFavorite(Number(btn.dataset.favorite));
     });
   });
 }
@@ -864,15 +879,30 @@ function renderFeatured() {
 /* -----------------------------------------------------------
    8. CATALOG — FILTERS + RENDER
    ----------------------------------------------------------- */
+function normalizeSearch(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function productPlatforms(p) {
+  const label = normalizeSearch(p.platformLabel);
+  return [...new Set([p.platform,
+    /\b(ps[345]|ps|playstation)\b/.test(label) && 'playstation',
+    /\bxbox\b/.test(label) && 'xbox',
+    /\b(nintendo|switch)\b/.test(label) && 'nintendo',
+    /\b(pc|steam)\b/.test(label) && 'pc'].filter(Boolean))];
+}
+
 function filterProducts() {
   const f = state.filters;
   let list = PRODUCTS.filter(p => {
     if (!f.categories.includes('all') && !f.categories.includes(p.category)) return false;
-    if (f.platforms.length && !f.platforms.includes(p.platform)) return false;
+    if (f.platforms.length && !f.platforms.some(platform => productPlatforms(p).includes(platform))) return false;
+    if (f.favorites && !state.favorites.includes(p.id)) return false;
     if (p.price > f.maxPrice) return false;
     if (f.stock === 'available' && p.stock !== 'available' && p.stock !== 'low') return false;
     if (f.stock === 'offer' && !p.offer) return false;
-    if (f.search && !(p.title.toLowerCase().includes(f.search.toLowerCase()) || p.category.includes(f.search.toLowerCase()))) return false;
+    const searchable = normalizeSearch([p.title, p.category, p.description, p.sku, p.platformLabel, ...productPlatforms(p)].join(' '));
+    if (!normalizeSearch(f.search).split(' ').every(term => searchable.includes(term))) return false;
     return true;
   });
 
@@ -891,7 +921,7 @@ function renderProducts() {
   const list = filterProducts();
   const empty = $('#emptyState');
   const count = $('#productCount');
-  if (count) count.textContent = list.length;
+  if (count) count.textContent = `${list.length} ${list.length === 1 ? 'producto' : 'productos'}`;
   grid.setAttribute('data-view', state.view);
 
   if (list.length === 0) {
@@ -907,6 +937,7 @@ function renderProducts() {
 function applyHashFilters() {
   const hash = (location.hash || '').replace(/^#/, '').trim();
   if (!hash) return;
+  resetCatalogFilters();
   const catInputs = $$('.f-category');
   const catMap = { juegos: 'juegos', consolas: 'consolas', accesorios: 'accesorios', merch: 'merch', ofertas: '__offer__' };
   const key = hash.split('=')[0];
@@ -923,21 +954,41 @@ function applyHashFilters() {
     }
   }
   if (hash.startsWith('search=')) {
-    const q = decodeURIComponent(hash.slice(7));
+    const q = new URLSearchParams(hash).get('search') || '';
     state.filters.search = q;
-    const si = $('.search__input');
-    if (si) si.value = q;
+    $$('.search__input, #filterSearchInput').forEach(input => { input.value = q; });
   }
-  const matchingLink = $$(`.nav [data-category="${catMap[key] || key}"]`)[0];
+  const matchingLink = $$('.nav [data-category]').find(link => link.dataset.category === (catMap[key] || key));
   if (matchingLink) {
     $$('.nav__link').forEach(l => l.classList.remove('nav__link--active'));
     matchingLink.classList.add('nav__link--active');
   }
 }
 
+function resetCatalogFilters() {
+  Object.assign(state.filters, { categories: ['all'], platforms: [], maxPrice: 50000, stock: 'all', search: '', sort: 'featured', favorites: false });
+  $$('.f-category').forEach(input => { input.checked = input.value === 'all'; });
+  $$('.f-platform, #favoritesOnly').forEach(input => { input.checked = false; });
+  $$('input[name="stock"]').forEach(input => { input.checked = input.value === 'all'; });
+  $$('.search__input, #filterSearchInput').forEach(input => { input.value = ''; });
+  if ($('#priceRange')) $('#priceRange').value = 50000;
+  if ($('#priceValue')) $('#priceValue').textContent = '$50,000';
+  if ($('#sortSelect')) $('#sortSelect').value = 'featured';
+  $$('.nav__link[data-category]').forEach(link => link.classList.remove('nav__link--active'));
+}
+
 function bindFilters() {
   if (!$('#productsGrid')) return;
   applyHashFilters();
+  renderProducts();
+  window.addEventListener('hashchange', () => { resetCatalogFilters(); applyHashFilters(); renderProducts(); });
+  $('#favoritesOnly')?.addEventListener('change', event => { state.filters.favorites = event.target.checked; renderProducts(); });
+  $('#toggleFilters')?.addEventListener('click', () => {
+    const panel = $('#catalogFilters');
+    panel.hidden = !panel.hidden;
+    $('#toggleFilters').setAttribute('aria-expanded', String(!panel.hidden));
+    $('.catalog__layout').classList.toggle('catalog__layout--no-filters', panel.hidden);
+  });
 
   const catInputs = $$('.f-category');
   catInputs.forEach(inp => {
@@ -981,6 +1032,7 @@ function bindFilters() {
 
   const resetFilters = $('#resetFilters');
   if (resetFilters) resetFilters.addEventListener('click', () => {
+    resetCatalogFilters();
     catInputs.forEach(i => i.checked = i.value === 'all');
     state.filters.categories = ['all'];
     $$('.f-platform').forEach(i => i.checked = false);
@@ -1008,13 +1060,23 @@ function bindFilters() {
     renderProducts();
   });
 
-  const searchInput = $('.catalog .search__input') || $('.search__input');
-  if (searchInput && $('#productsGrid')) {
+  $$('.search__input, #filterSearchInput').forEach(searchInput => {
     searchInput.addEventListener('input', e => {
       state.filters.search = e.target.value.trim();
+      $$('.search__input, #filterSearchInput').forEach(input => { if (input !== e.target) input.value = e.target.value; });
       renderProducts();
     });
-  }
+  });
+  $('.search')?.addEventListener('submit', event => {
+    event.preventDefault();
+    const query = $('.search__input').value.trim();
+    resetCatalogFilters();
+    state.filters.search = query;
+    $$('.search__input, #filterSearchInput').forEach(input => { input.value = query; });
+    history.replaceState(null, '', '#search=' + encodeURIComponent(query));
+    renderProducts();
+    $('#catalog')?.scrollIntoView({ behavior: 'smooth' });
+  });
 
   $$('.view-toggle__btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1029,6 +1091,7 @@ function bindFilters() {
     link.addEventListener('click', e => {
       e.preventDefault();
       const cat = link.dataset.category;
+      resetCatalogFilters();
       $$('.nav__link').forEach(l => l.classList.remove('nav__link--active'));
       link.classList.add('nav__link--active');
       if (cat === 'ofertas') {
@@ -1797,6 +1860,8 @@ function bindAuthUi() {
 }
 
 function bindUi() {
+  $$('[data-support]').forEach(link => { link.href = 'https://wa.me/' + OWNER_WHATSAPP_E164 + '?text=' + encodeURIComponent(link.dataset.support); });
+  $('#newsletterForm')?.addEventListener('submit', submitNewsletter);
   /* Login page: no requiere hamburger, cart, checkout, etc. */
   if (PAGE === 'login') return;
 
